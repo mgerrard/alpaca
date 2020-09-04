@@ -187,6 +187,7 @@ fullPortfolio timeout gTimeout iTimeout = do
       analysisDir = portfolioDir ++ "Symbiotic",
       analysisOptions = [
         ("--witness", Just "witness.graphml"),
+	("--sv-comp", Nothing),
         ("--32", Nothing)],
       safeOverapproximation = False,
       analysisTimeout = timeout,
