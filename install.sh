@@ -149,11 +149,11 @@ unpack_and_rename_zip_if_needed "Pesco" "pesco" "PeSCo-1.8.2"
 unpack_and_rename_zip_if_needed "VeriAbs" "veriabs"
 
 cd $ROOT
-# rework the below sanity check when seahorn is back in
-#echo "Now running a sanity check on each tool; this may take some time..."
-#./aca-framework/test/sanity_check.sh
-#echo
-#echo "Please report a bug if there are any above failures."
+echo
+echo "Now running a sanity check on each tool; this may take some time..."
+./aca-framework/test/sanity_check.sh
+echo
+echo "Please report a bug if there are any above failures."
 echo
 echo "To see options (assuming $HOME/.local/bin is on your PATH), run:"
 echo
