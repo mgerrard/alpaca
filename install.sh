@@ -49,6 +49,7 @@ check_stack_version
 check_for "java"
 check_for "python3"
 check_for_python_3_6
+check_for_python
 check_for "benchexec"
 check_benchexec_version
 check_for "z3"
