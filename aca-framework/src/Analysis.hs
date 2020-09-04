@@ -20,7 +20,6 @@ import Writing
 import Statistics
 import AcaComputation
 import Configuration
-import BinarySearch
 import RunPortfolio
 import Data.Time
 import Characterize
@@ -176,7 +175,7 @@ classifyEarlyResults ev =
       else putStrLn $ "\nEarly stopping: SUCCESS: some tool found evidence! \n\n"++(show ev)
 
 condition :: Program -> Csc -> AcaComputation Program
-condition p@(Program _ _ n iter iLogPath) csc = do
+condition p@(Program _ _ n iter _) csc = do
   display csc
   logPre <- getLogPrefix
   condStart <- io $ getCurrentTime

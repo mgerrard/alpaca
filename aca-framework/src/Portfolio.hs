@@ -128,17 +128,6 @@ fullPortfolio :: Int -> Int -> Int -> IO Portfolio
 fullPortfolio timeout gTimeout iTimeout = do
   portfolioDir <- getPortfolioDir
   let
-    civl = Analyzer {
-      analysisTool = CIVL,
-      analysisName = "civl",
-      analysisDir = portfolioDir ++ "CPA_Seq",
-      analysisOptions = [],
-      safeOverapproximation = False,
-      analysisTimeout = timeout,
-      witnessType = NoWitness,
-      generalizeTimeout = gTimeout,
-      initTimeout = iTimeout
-      }
     cpaSeq = Analyzer {
       analysisTool = CPA_Seq,
       analysisName = "cpachecker",
@@ -150,76 +139,6 @@ fullPortfolio timeout gTimeout iTimeout = do
         ("-setprop", Just "cfa.allowBranchSwapping=false"),
         ("-setprop", Just "cpa.arg.witness.exportSourcecode=true"),
         ("-timelimit", Just "900 s")],
-      safeOverapproximation = True,
-      analysisTimeout = timeout,
-      witnessType = BranchDirectives,
-      generalizeTimeout = gTimeout,
-      initTimeout = iTimeout
-      }
-    cpaSeq16 = Analyzer {
-      analysisTool = CPA_Seq_16,
-      analysisName = "cpachecker",
-      analysisDir = portfolioDir ++ "CPA_Seq_16",
-      analysisOptions = [
-        ("-svcomp16", Nothing),
-        ("-heap", Just "10000M"),
-        ("-benchmark", Nothing),
-        ("-setprop", Just "cfa.allowBranchSwapping=false"),
-        ("-setprop", Just "cpa.arg.errorPath.graphml=witness.graphml"),
-        ("-setprop", Just "counterexample.export.compressWitness=false"),
-        ("-setprop", Just "cpa.arg.compressWitness=false"),
-        ("-setprop", Just "cpa.arg.witness.exportSourcecode=true"),
-        ("-timelimit", Just "900s")],
-      safeOverapproximation = True,
-      analysisTimeout = timeout,
-      witnessType = BranchDirectives,
-      generalizeTimeout = gTimeout,
-      initTimeout = iTimeout
-      }
-    cpaBamBnb = Analyzer {
-      analysisTool = CPA_BAM_BnB,
-      analysisName = "cpachecker",
-      analysisDir = portfolioDir ++ "CPA_BAM_BnB",
-      analysisOptions = [
-        ("-svcomp18-bam-bnb", Nothing),
-        ("-disable-java-assertions", Nothing),
-        ("-heap", Just "10000m"),
-        ("-setprop", Just "cfa.allowBranchSwapping=false"),
-        ("-setprop", Just "cpa.arg.witness.exportSourcecode=true"),
-        ("-32", Nothing)],
-      safeOverapproximation = True,
-      analysisTimeout = timeout,
-      witnessType = BranchDirectives,
-      generalizeTimeout = gTimeout,
-      initTimeout = iTimeout
-      }
-    cpaBamSlicing = Analyzer {
-      analysisTool = CPA_BAM_Slicing,
-      analysisName = "cpachecker",
-      analysisDir = portfolioDir ++ "CPA_BAM_Slicing",
-      analysisOptions = [
-        ("-ldv-bam-svcomp", Nothing),
-        ("-disable-java-assertions", Nothing),
-        ("-heap", Just "10000M"),
-        ("-setprop", Just "cfa.allowBranchSwapping=false"),
-        ("-setprop", Just "cpa.arg.witness.exportSourcecode=true"),
-        ("-32", Nothing)],
-      safeOverapproximation = True,
-      analysisTimeout = timeout,
-      witnessType = BranchDirectives,
-      generalizeTimeout = gTimeout,
-      initTimeout = iTimeout
-      }
-    interpChecker = Analyzer {
-      analysisTool = InterpChecker,
-      analysisName = "cpachecker",
-      analysisDir = portfolioDir ++ "InterpChecker",
-      analysisOptions = [
-        ("-sv-comp18-interpcpachecker", Nothing),
-        ("-heap", Just "10000M"),
-        ("-setprop", Just "cfa.allowBranchSwapping=false"),
-        ("-setprop", Just "cpa.arg.witness.exportSourcecode=true"),
-        ("-disable-java-assertions", Nothing)],
       safeOverapproximation = True,
       analysisTimeout = timeout,
       witnessType = BranchDirectives,
@@ -239,32 +158,6 @@ fullPortfolio timeout gTimeout iTimeout = do
       generalizeTimeout = gTimeout,
       initTimeout = iTimeout
       }
-    uKojak = Analyzer {
-      analysisTool = UKojak,
-      analysisName = "ultimatekojak",
-      analysisDir = portfolioDir ++ "UKojak",
-      analysisOptions = [
-        ("--full-output", Nothing),
-        ("--architecture", Just "32bit")],
-      safeOverapproximation = True,
-      analysisTimeout = timeout,
-      witnessType = BranchDirectives,
-      generalizeTimeout = gTimeout,
-      initTimeout = iTimeout
-      }
-    uTaipan = Analyzer {
-      analysisTool = UTaipan,
-      analysisName = "ultimatetaipan",
-      analysisDir = portfolioDir ++ "UTaipan",
-      analysisOptions = [
-        ("--full-output", Nothing),
-        ("--architecture", Just "32bit")],
-      safeOverapproximation = True,
-      analysisTimeout = timeout,
-      witnessType = BranchDirectives,
-      generalizeTimeout = gTimeout,
-      initTimeout = iTimeout
-      }
     veriAbs = Analyzer {
       analysisTool = VeriAbs,
       analysisName = "veriabs",
@@ -273,58 +166,6 @@ fullPortfolio timeout gTimeout iTimeout = do
       safeOverapproximation = True,
       analysisTimeout = timeout,
       witnessType = BranchDirectives,
-      generalizeTimeout = gTimeout,
-      initTimeout = iTimeout
-      }
-    cbmc = Analyzer {
-      analysisTool = CBMC,
-      analysisName = "cbmc",
-      analysisDir = portfolioDir ++ "CBMC",
-      analysisOptions = [
-        ("--graphml-witness", Just "witness.graphml"),
-        ("--32", Nothing)],
-      safeOverapproximation = False,
-      analysisTimeout = timeout,
-      witnessType = ConcreteInputs,
-      generalizeTimeout = gTimeout,
-      initTimeout = iTimeout
-      }
-    twoLs = Analyzer {
-      analysisTool = TwoLS,
-      analysisName = "two_ls",
-      analysisDir = portfolioDir ++ "TwoLS",
-      analysisOptions = [
-        ("--graphml-witness", Just "witness.graphml"),
-        ("--32", Nothing)],
-      safeOverapproximation = False,
-      analysisTimeout = timeout,
-      witnessType = ConcreteInputs,
-      generalizeTimeout = gTimeout,
-      initTimeout = iTimeout
-      }
-    seahorn = Analyzer {
-      analysisTool = Seahorn,
-      analysisName = "seahorn",
-      analysisDir = portfolioDir ++ "Seahorn",
-      analysisOptions = [("--cex=witness.graphml", Nothing)],
-      safeOverapproximation = True,
-      analysisTimeout = timeout,
-      witnessType = ConcreteInputs,
-      generalizeTimeout = gTimeout,
-      initTimeout = iTimeout
-      }
-    depthK = Analyzer {
-      {- DepthK does horrible on falsification:
-           sv-comp.sosy-lab.org/2018/results/results-verified/quantilePlot-FalsificationOverall.svg
-         but performs well on validation.
-         Consider throwing out any False results it gives; not worth checking. -}
-      analysisTool = DepthK,
-      analysisName = "depthk",
-      analysisDir = portfolioDir ++ "DepthK",
-      analysisOptions = [], -- no options
-      safeOverapproximation = True,
-      analysisTimeout = timeout,
-      witnessType = ConcreteInputs,
       generalizeTimeout = gTimeout,
       initTimeout = iTimeout
       }
@@ -366,19 +207,6 @@ fullPortfolio timeout gTimeout iTimeout = do
       safeOverapproximation = True,
       analysisTimeout = timeout,
       witnessType = BranchDirectives,
-      generalizeTimeout = gTimeout,
-      initTimeout = iTimeout
-      }
-    smack = Analyzer {
-      analysisTool = Smack,
-      analysisName = "smack",
-      analysisDir = portfolioDir ++ "Smack",
-      analysisOptions = [
-          ("-w", Just "witness.graphml"),
-          ("--clang-options=-m32", Nothing)],
-      safeOverapproximation = False,
-      analysisTimeout = timeout,
-      witnessType = ConcreteInputs,
       generalizeTimeout = gTimeout,
       initTimeout = iTimeout
       }

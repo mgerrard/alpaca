@@ -1,6 +1,6 @@
 module BinarySearch where
 
-import Data.List (tails, find, zip4)
+import Data.List (tails, zip4)
 import System.Directory (createDirectoryIfMissing)
 import CscTypes
 import AcaComputation
@@ -10,7 +10,6 @@ import Control.Concurrent.Async
 import Control.Monad.State
 import Transformer
 import Language.C
-import Portfolio
 import Data.Maybe (catMaybes, isJust)
 import Data.Time
 import RunPortfolio
@@ -29,11 +28,11 @@ runOnBlocks csc ctx elems ev = do
   {- Reasonable limit for the reduced portfolio on doppio's 64-core machines -}
   let blockSize = 9
 
-  if ((length elems) > blockSize)
-    then do
-      updateLog $ "running blocking in chunks of "++(show blockSize)++" until new evidence is found\n\n"
-      return []
-    else return []
+  _ <- if ((length elems) > blockSize)
+         then do
+           updateLog $ "running blocking in chunks of "++(show blockSize)++" until new evidence is found\n\n"
+           return []
+         else return []
     
   rs <- runGenPortfolio ctx (take blockSize elems)
 

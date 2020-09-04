@@ -3,11 +3,9 @@ module Writing where
 import AcaComputation
 import CscTypes
 import Statistics
-import Data.List.Utils hiding (merge)
 import Control.Monad.State
 import Data.List (intersperse)
 import System.Directory (createDirectoryIfMissing)
-import Language.C
 
 display :: Csc -> AcaComputation ()
 display csc = do

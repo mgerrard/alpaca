@@ -366,7 +366,8 @@ cpaValidator witness = do
     safeOverapproximation = True,
     analysisTimeout = 90, -- standard timeout for witness validation
     witnessType = BranchDirectives,
-    generalizeTimeout = 90
+    generalizeTimeout = 90,
+    initTimeout = 90
     }
 
 removeArtifacts :: FilePath -> IO ()
