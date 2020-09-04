@@ -55,8 +55,8 @@ echo
 echo "Configuring CIVL with the available solvers"
 CIVL_DIR="$ANALYZERS/civl"
 CIVL_JAR="$CIVL_DIR/civl.jar"
-SOLVER_DIR="$CIVL_DIR/solvers"
-cd $SOLVER_DIR
+java -jar $CIVL_JAR config
+
 function unpack_and_rename_zip_if_needed {
     # first: canonical folder name (e.g., CPA_Seq)
     # second: zip file name (e.g., cpa-seq)
@@ -70,21 +70,6 @@ function unpack_and_rename_zip_if_needed {
 	fi
     fi
 }
-
-function download_zip_if_needed {
-    if [ ! -f "$1" ]; then
-    else
-	size = stat -c %s "$1"
-
-
-}
-
-unpack_and_rename_zip_if_needed "z3" "z3-4.7.1-x64-ubuntu-16.04" "z3-4.7.1-x64-ubuntu-16.04"
-# put our z3 at beginning of path for CIVL configuration
-PATH=$SOLVER_DIR/z3/bin:$PATH
-PATH=$SOLVER_DIR/cvc4/bin:$PATH
-java -jar $CIVL_JAR config
-cd $ROOT
 
 ARCHIVE_REPO="https://gitlab.com/sosy-lab/sv-comp/archives-2020/raw/svcomp20/2020"
 
@@ -135,6 +120,7 @@ unpack_and_rename_zip_if_needed "UAutomizer" "uautomizer" "UAutomizer-linux"
 unpack_and_rename_zip_if_needed "Symbiotic" "symbiotic" "symbiotic"
 unpack_and_rename_zip_if_needed "ESBMC" "esbmc" "esbmc"
 unpack_and_rename_zip_if_needed "Pesco" "pesco" "PeSCo-1.8.2"
+unpack_and_rename_zip_if_needed "VeriAbs" "veriabs"
 
 cd $ROOT
 # rework the below sanity check when seahorn is back in
@@ -143,7 +129,7 @@ cd $ROOT
 #echo
 #echo "Please report a bug if there are any above failures."
 echo
-echo "To see options (assuming $HOME/.local/bin is on your $PATH), run:"
+echo "To see options (assuming $HOME/.local/bin is on your PATH), run:"
 echo
 echo "  alpaca -h"
 echo

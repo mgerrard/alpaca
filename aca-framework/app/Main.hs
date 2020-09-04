@@ -6,6 +6,7 @@ import Options.Applicative
 import Data.Semigroup ((<>))
 import System.Exit
 import System.Posix.Signals
+import System.Posix.Process
 import Control.Concurrent
 
 main :: IO ()
@@ -13,8 +14,7 @@ main = do
   tid <- myThreadId
   _ <- installHandler keyboardSignal (Catch (killThread tid)) Nothing
   _ <- runAca =<< customExecParser (prefs (columns 120)) opts
-  killThread tid
-  return ()
+  exitImmediately ExitSuccess
 
 opts :: ParserInfo Configuration
 opts = info ( versionOption <*> configuration <**> helper )

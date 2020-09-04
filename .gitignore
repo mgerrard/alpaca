@@ -1,0 +1,9 @@
+*~
+*.zip
+*.stack-work/
+*.lock
+*.cabal
+tools/analyzer-portfolio/svcomp_archives/
+CIVLREP/
+logs_alpaca/
+*.tmp
