@@ -12,8 +12,32 @@ function check_for_python {
     command -v "python" >/dev/null 2>&1 || { echo >&2 "Please create a symbolic link from python to your version of python2 (e.g., 2.7) with the command 'sudo ln -s /usr/bin/python2.7 /usr/bin/python'.  Some tools in the portfolio have a wrapper script that uses constructs only legal in python 2, unfortunately. Aborting."; exit 1; }
 }
 
+verlte() {
+    [  "$1" = "`echo -e "$1\n$2" | sort -V | head -n1`" ]
+}
+
+verlt() {
+    [ "$1" = "$2" ] && return 1 || verlte $1 $2
+}
+
 function check_for_stack {
     command -v "stack" >/dev/null 2>&1 || { echo >&2 "I require 'stack' but it's not installed. Please run 'sudo apt install haskell-stack && stack upgrade --binary-only'"; exit 1; }
+}
+
+function check_stack_version {
+    stack_version=$(stack --version | awk '{print $2}' | sed 's/.$//')
+    verlt $stack_version 2.3.3 && {
+	echo "Please update your version of stack to at least 2.3.3 by running 'stack upgrade --binary-only'";
+	exit 1;
+    }
+}
+
+function check_benchexec_version {
+    benchexec_version=$(benchexec --version | awk '{print $2}')
+    verlt $benchexec_version 2.7 && {
+	echo "Please update your version of benchexec to at least 2.7 by downloading the latest .deb file listed at github.com/mgerrard/alpaca/README.md and following the install instructions.";
+	exit 1;
+    }
 }
 
 function does_package_exist {
@@ -21,10 +45,12 @@ function does_package_exist {
 }
 
 check_for_stack
+check_stack_version
 check_for "java"
 check_for "python3"
 check_for_python_3_6
 check_for "benchexec"
+check_benchexec_version
 check_for "z3"
 does_package_exist "libc6-dev-i386"
 does_package_exist "python-pycparser"
