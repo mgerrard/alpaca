@@ -382,4 +382,4 @@ fullPortfolio timeout gTimeout iTimeout = do
       generalizeTimeout = gTimeout,
       initTimeout = iTimeout
       }
-  return [cpaSeq,uAutomizer,symbiotic,esbmc,pesco]
+  return [cpaSeq,uAutomizer,symbiotic,esbmc,pesco,veriAbs]
