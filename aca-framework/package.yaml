@@ -1,0 +1,224 @@
+# don't use tabs!
+name:                aca-framework
+version:             0.1.0.0
+github:              githubuser/aca-framework
+license:             BSD3
+author:              Mitchell Gerrard
+maintainer:          example@example.com
+copyright:           2017 Author name here
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on Github at <https://github.com/githubuser/aca-framework#readme>
+
+ghc-options: -Wall
+
+dependencies:
+- base >= 4.7 && < 5
+- assert
+- language-c
+- mtl
+- split
+- containers
+- silently
+- MissingH
+- hxt
+- async
+- filepath
+- process
+- directory
+- optparse-applicative
+- time
+- text
+- network
+- filemanip
+- unbounded-delays
+- Glob
+- matrix
+- sbv
+- unix
+
+default-extensions:
+- OverloadedStrings
+- PackageImports
+
+library:
+  source-dirs: src
+  exposed-modules:
+    - Lib
+    - Analysis
+    - Portfolio
+    - LocalPaths
+    - Branch
+    - CivlParsing
+    - Parsing
+    - Transformer
+    - CscTypes
+    - Transformations
+    - AcaComputation
+    - Configuration
+    - BinarySearch
+    - RunPortfolio
+    - Solver
+    - SolverLib
+    - Writing
+    - Statistics
+    - LaunchBenchexec
+    - Octagon
+    - Widening
+    - Reading
+    - Characterize
+
+  other-modules:
+    - Paths_aca_framework
+
+executables:
+  alpaca:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+      - -Wall
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - aca-framework
+      - optparse-applicative
+    other-modules:
+      - Paths_aca_framework
+
+  runtool:
+    main:                MainRunTool.hs
+    source-dirs:         app
+    ghc-options:
+      - -Wall
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - aca-framework
+      - optparse-applicative
+    other-modules:
+      - Paths_aca_framework
+
+  count:
+    main:                MainCount.hs
+    source-dirs:         app
+    ghc-options:
+      - -Wall
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - aca-framework
+    other-modules:
+      - Paths_aca_framework
+
+  count-query:
+    main:                MainCountQuery.hs
+    source-dirs:         app
+    ghc-options:
+      - -Wall
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - aca-framework
+    other-modules:
+      - Paths_aca_framework
+
+  count-partitions:
+    main:                CountPartitions.hs
+    source-dirs:         app
+    ghc-options:
+      - -Wall
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - aca-framework
+    other-modules:
+      - Paths_aca_framework
+
+  interval-size:
+    main:                CountIntervalSize.hs
+    source-dirs:         app
+    ghc-options:
+      - -Wall
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - aca-framework
+    other-modules:
+      - Paths_aca_framework
+
+  interval-size-query:
+    main:                CountIntervalSizeQuery.hs
+    source-dirs:         app
+    ghc-options:
+      - -Wall
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - aca-framework
+    other-modules:
+      - Paths_aca_framework
+
+  count-intervals:
+    main:                CountIntervals.hs
+    source-dirs:         app
+    ghc-options:
+      - -Wall
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - aca-framework
+    other-modules:
+      - Paths_aca_framework
+
+  synth-c:
+    main:                MainSynthesize.hs
+    source-dirs:         app
+    ghc-options:
+      - -Wall
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+
+  mutate-c:
+    main:                MainMutate.hs
+    source-dirs:         app
+    ghc-options:
+      - -Wall
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+
+tests:
+  aca-framework-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - aca-framework
+      - hspec
+      - hspec-discover
+      - QuickCheck
+      - directory
+
+

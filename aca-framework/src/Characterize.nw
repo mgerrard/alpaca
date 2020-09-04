@@ -1,0 +1,139 @@
+@
+The following function was lifted from previous, illiterate code.
+We add a chunk to potentially do some widening.
+
+<<*>>=
+<<Libraries>>
+<<Functions>>
+
+<<Functions>>=
+characterize :: EvidenceCollection -> AcaComputation Csc
+characterize ev = do
+  when (triviallyFalse ev) (setTerminationFlag)
+  let exactSubspace = characterizeLegitimate ev
+  state <- get
+  csc <- getCsc
+  <<Add new partition to CSC, possibly after applying widening>>
+  let validPrefixes = characterizeSpurious ev
+  enrichValidSpace validPrefixes
+  csc' <- getCsc; return csc'
+
+@
+Though ACA is guaranteed to converge, this convergence
+could take amighty long time. If reaching a $\psi$-state
+depends on a loop condition involving a symbolic input,
+and the error witness that leads the underapproximator
+to this state is overly-specific, e.g., just follows
+one concrete path through the program, then you can run
+into the situation where a first loop iteration is
+blocked, then the second, and so on...
+
+Consider the following program:
+
+\begin{verbatim}
+  int main() {
+    int x = read();
+    int y = read();
+
+    for (int i=0; i<y; i++) {
+      if (x == i) {
+        /* psi-state reached */
+      }
+    }
+  }
+\end{verbatim}
+
+The $\psi$-state can be reached when $y>0$ and
+$x \equiv 0$, and when $y>1$ and $x \equiv 1$,
+etc. Without widening, when ALPACA is run with
+its overapproximator set to Ultimate Automizer,
+this unbounded series of partitions is what is
+computed.
+
+To encourage a speedier convergence, we will set a
+bound $k$ on the number of disjoint partitions allowed
+in a CSC, and if this bound is exceeded, then we
+can octagonalize the last $m$ most recently-added
+partitions, and apply widening on these $m$
+octagons to yield a single more general partition.
+What we set the parameters $k$ and $m$ to depends on
+how aggressively we want to widen.
+
+<<Add new partition to CSC, possibly after applying widening>>=
+if <<Partition bound $k$ is exceeded>>
+  then do
+    <<Octagonalize $m$ partitions>>
+    <<Reduce the $m$ octagons into a single [[p']] via widening>>
+    widenCscWithConjunction p'
+  else enrichCscWith exactSubspace
+
+<<Partition bound $k$ is exceeded>>=
+(length $ disjointPartitions csc) > (partitionBound state)
+
+<<Libraries>>=
+import AcaComputation
+import CscTypes
+
+<<Octagonalize $m$ partitions>>=
+let mPartitions = reverse . take m . reverse (disjointPartitions csc)
+let mConjunctions = map (upper . upperBound) mPartitions
+octParts <- mapM (io $ octagonConstraints 100 (-100)) mConjunctions
+@
+We fold from the right to widen from the ``oldest'' to
+the most recent.
+<<Reduce the $m$ octagons into a single [[p']] via widening>>=
+p' <- foldrM applyWidening (head octParts) octParts
+
+<<Libraries>>=
+import qualified Widening as W
+
+<<Functions>>=
+applyWidening :: OctConstraint -> OctConstraint -> AcaComputation Conjunction
+applyWidening o1 o2 = do
+  let p1 = concat $ map W.toPotentialForm o1
+  io $ putStrLn $ "First potential constraints: "++(show p1)
+  let dbm1 = W.makeDbm p1
+
+  let p2 = concat $ map W.toPotentialForm o2
+  io $ putStrLn $ "Second potential constraints: "++(show p2)
+  let dbm2 = W.makeDbm p2
+  
+  io $ putStrLn $ "Previous DBM:"
+  io $ (W.display dbm1)
+  io $ putStrLn $ "Current DBM:"
+  io $ (W.display dbm2)
+
+  let dbm3 = W.widen dbm1 dbm2
+  io $ putStrLn $ "Widened DBM:"
+  io $ (W.display dbm3)
+
+  let ps = W.dbmToPotentialConstraints dbm3
+  io $ putStrLn $ "New potential constraints:"
+  io $ putStrLn (show ps)
+
+  let ps' = map W.potentialToConjunct ps
+  io $ putStrLn "New conjunction:"
+  io $ mapM_ (\(Conjunct c)-> putStrLn $ show $ pretty c) ps'
+
+  return ps'
+
+enrichValidSpace :: [Subspace] -> AcaComputation ()
+enrichValidSpace subs = do
+  csc@(Csc p _ _ ss f) <- getCsc
+  let validConjunctions = map conjunction subs
+      ss' = ss ++ validConjunctions
+      subspaceMaps = map inputIdCounts subs
+      subspaceMap = foldl (Map.unionWith max) Map.empty subspaceMaps
+      inputMap' = Map.unionWith max (inputCountMap csc) subspaceMap
+      subspaceTypeMaps = map inputIdTypes subs
+      subspaceTypeMap = foldl (Map.union) Map.empty subspaceTypeMaps
+      typeMap' = Map.union (inputTypeMap csc) subspaceTypeMap
+      csc' = (Csc p inputMap' typeMap' ss' f)
+  st <- get
+  put $ st { stateCsc = csc' }
+
+characterizeLegitimate :: EvidenceCollection -> [Subspace]
+characterizeLegitimate e = catMaybes $ map maybeCharacterization e
+
+characterizeSpurious :: EvidenceCollection -> [Subspace]
+characterizeSpurious e = catMaybes $ map maybeSpuriousCharacterization e
