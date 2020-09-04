@@ -23,7 +23,6 @@ This is an instantiation of the
 
 * [CPAchecker](https://cpachecker.sosy-lab.org/)
 * [UltimateAutomizer](https://ultimate.informatik.uni-freiburg.de/)
-* [Symbiotic](https://github.com/staticafi/symbiotic)
 * [ESBMC](http://esbmc.org/)
 * [PeSCo](https://link.springer.com/chapter/10.1007/978-3-030-17502-3_19)
 * [VeriAbs](https://link.springer.com/chapter/10.1007/978-3-319-89963-3_32)

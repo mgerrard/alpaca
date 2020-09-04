@@ -181,20 +181,6 @@ fullPortfolio timeout gTimeout iTimeout = do
       generalizeTimeout = gTimeout,
       initTimeout = iTimeout
       }
-    symbiotic = Analyzer {
-      analysisTool = Symbiotic,
-      analysisName = "symbiotic",
-      analysisDir = portfolioDir ++ "Symbiotic",
-      analysisOptions = [
-        ("--witness", Just "witness.graphml"),
-	("--sv-comp", Nothing),
-        ("--32", Nothing)],
-      safeOverapproximation = False,
-      analysisTimeout = timeout,
-      witnessType = ConcreteInputs,
-      generalizeTimeout = gTimeout,
-      initTimeout = iTimeout
-      }
     pesco = Analyzer {
       analysisTool = Pesco,
       analysisName = "pesco",
@@ -211,4 +197,4 @@ fullPortfolio timeout gTimeout iTimeout = do
       generalizeTimeout = gTimeout,
       initTimeout = iTimeout
       }
-  return [cpaSeq,uAutomizer,symbiotic,esbmc,pesco,veriAbs]
+  return [cpaSeq,uAutomizer,esbmc,pesco,veriAbs]

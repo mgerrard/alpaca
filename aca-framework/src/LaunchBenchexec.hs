@@ -4,15 +4,6 @@ import Data.List (isInfixOf)
 import Data.List.Split (splitOn)
 import Portfolio
 
--- Unused tools from SVCOMP 18:
---  | Forester ; only for memsafety (and heap properties)
---  | PredatorHP ; only for memsafety (and heap properties)
---  | AProVE ; only for termination
---  | Yogar_CBMC ; only for concurrency
---  | Map2Check ; does not perform well
---  | Skink ; does not perform well
---  | VIAP ; does not perform well
-
 data AnalysisResult = FalseResult | TrueResult | UnknownResult deriving (Show, Eq)
 
 getResultSummary :: String -> AnalysisResult
@@ -26,15 +17,6 @@ getResultSummary output =
         then TrueResult
         else UnknownResult
 
-{- TODO:
-   - reducer-based incorporated into ACA
-     - we describe failing subspaces
-     - THEY describe non-failing subspaces
-       - include this in some other partition
-       - so we can start including this as another
-         part of our disjoint partition
--}
-
 xmlHeader :: Analyzer -> String
 xmlHeader analyzer =
   "<?xml version=\"1.0\"?>\n\
@@ -42,7 +24,7 @@ xmlHeader analyzer =
   \<benchmark tool=\""++(analysisName analyzer)++"\" timelimit=\"900 s\" hardtimelimit=\"960 s\">\n\
   \<require cpuModel=\"Intel Xeon E3-1230 v5 @ 3.40 GHz\"/>\n\
   \<resultfiles>*</resultfiles>\n\
-  \<rundefinition name=\"sv-comp19_prop-reachsafety\"></rundefinition>\n"
+  \<rundefinition name=\"sv-comp20_prop-reachsafety\"></rundefinition>\n"
 
 makeOption :: (Attribute, Maybe Value) -> String
 makeOption (attr, Nothing) = "<option name=\""++attr++"\"/>\n"

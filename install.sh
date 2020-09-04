@@ -134,7 +134,6 @@ cd $SV_ARCHIVES
 
 download_zip_if_needed "cpa-seq" "102733640" "CPA_Seq"
 download_zip_if_needed "uautomizer" "84313069" "UAutomizer"
-download_zip_if_needed "symbiotic" "73653236" "Symbiotic"
 download_zip_if_needed "esbmc" "39176877" "ESBMC"
 download_zip_if_needed "pesco" "289247537" "Pesco"
 download_zip_if_needed "veriabs" "313055755" "VeriAbs"
@@ -144,7 +143,6 @@ echo "Unpacking any zipped SVCOMP archives"
 
 unpack_and_rename_zip_if_needed "CPA_Seq" "cpa-seq" "CPAchecker-1.9-unix"
 unpack_and_rename_zip_if_needed "UAutomizer" "uautomizer" "UAutomizer-linux"
-unpack_and_rename_zip_if_needed "Symbiotic" "symbiotic" "symbiotic"
 unpack_and_rename_zip_if_needed "ESBMC" "esbmc" "esbmc"
 unpack_and_rename_zip_if_needed "Pesco" "pesco" "PeSCo-1.8.2"
 unpack_and_rename_zip_if_needed "VeriAbs" "veriabs"
