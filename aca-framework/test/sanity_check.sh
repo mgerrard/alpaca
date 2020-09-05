@@ -4,6 +4,7 @@
 # and checks that it can be used in ALPACA
 # to report an exact partition for the
 # simple file at alpaca/examples/test.c
+# (or moves to top, in the case of Symbiotic)
 #
 # This is just to kick the tires.
 
@@ -15,7 +16,11 @@ function run_test {
     then
       echo "success with $portfolio"
     else
-      echo "FAILURE with portfolio $portfolio"
+	if [ $portfolio == "symbiotic" ] && [ $result == "top" ]; then
+            echo "success with $portfolio"
+	else
+	    echo "FAILURE with portfolio $portfolio"
+	fi
     fi
 }
 
@@ -27,4 +32,5 @@ run_test "cpaSeq"
 run_test "uAutomizer"
 run_test "veriAbs"
 run_test "esbmc"
+run_test "symbiotic"
 run_test "pesco"

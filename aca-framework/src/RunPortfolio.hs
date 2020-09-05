@@ -351,8 +351,19 @@ normalizeWitness (Just w) p a mTag debug logPre = do
   let validatorDir = pre ++ "/" ++ (deriveOutputDir p a mTag) ++ "/validation"
   tryToGatherWitness validatorDir
 
+transformWrapAround :: FilePath -> IO ()
+transformWrapAround w = do
+  {- If a witness contains string "\\result==2147483648",
+     we transform it to "\\result==-2147483648" in-place.
+     These two numbers are equivalent in a 32-bit model, however
+     CPA's witness validator incorrectly interprets the first
+     number as being positive, so we put some scotch on this.
+  -}
+  callProcess "/usr/bin/sed" ["-i","s/==2147483648/==-2147483648/",w]
+
 cpaValidator :: FilePath -> IO Analyzer
 cpaValidator witness = do
+  transformWrapAround witness
   portfolioDir <- getPortfolioDir
   return $ Analyzer {
     analysisTool = CPA_Validator,
