@@ -40,18 +40,15 @@ data AnalysisTool =
   | CBMC
   | CIVL
   | CPA_BAM_BnB
-  | CPA_BAM_Slicing
   | CPA_Seq
-  | CPA_Seq_16
   | CPA_Validator
   | DepthK
   | ESBMC
-  | IKOS
   | InterpChecker
   | Pesco
+  | Pinaka
   | Symbiotic
   | Seahorn
-  | Smack
   | UAutomizer
   | UKojak
   | UTaipan
@@ -93,22 +90,18 @@ portfolioSubset pFilter exclusions p =
 correspondingTool :: Portfolio -> String -> Maybe Analyzer
 correspondingTool p "cpaSeq" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==CPA_Seq) p
 correspondingTool p "cpaBamBnb" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==CPA_BAM_BnB) p
-correspondingTool p "cpaBamSlicing" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==CPA_BAM_Slicing) p
-correspondingTool p "interpChecker" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==InterpChecker) p
 correspondingTool p "uAutomizer" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==UAutomizer) p
 correspondingTool p "uKojak" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==UKojak) p
 correspondingTool p "uTaipan" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==UTaipan) p
 correspondingTool p "veriAbs" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==VeriAbs) p
 correspondingTool p "cbmc" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==CBMC) p
+correspondingTool p "civl" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==CIVL) p
 correspondingTool p "twoLs" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==TwoLS) p
-correspondingTool p "depthK" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==DepthK) p
 correspondingTool p "esbmc" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==ESBMC) p
 correspondingTool p "symbiotic" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==Symbiotic) p
-correspondingTool p "pesco" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==Pesco) p
-correspondingTool p "cpaSeq16" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==CPA_Seq_16) p
 correspondingTool p "seahorn" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==Seahorn) p
-correspondingTool p "smack" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==Smack) p
-correspondingTool p "civl" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==CIVL) p
+correspondingTool p "pesco" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==Pesco) p
+correspondingTool p "pinaka" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==Pinaka) p
 correspondingTool _ t = error $ "Sorry, but I don't recognize the tool: "++t
 
 {- The following are the tools that report a reasonable amount of evidence -}
@@ -211,4 +204,87 @@ fullPortfolio timeout gTimeout iTimeout = do
       generalizeTimeout = gTimeout,
       initTimeout = iTimeout
       }
-  return [cpaSeq,uAutomizer,esbmc,pesco,symbiotic,veriAbs]
+    twoLs = Analyzer {
+      analysisTool = TwoLS,
+      analysisName = "two_ls",
+      analysisDir = portfolioDir ++ "TwoLS",
+      analysisOptions = [
+        ("--graphml-witness", Just "witness.graphml"),
+        ("--32", Nothing)],
+      safeOverapproximation = True,
+      analysisTimeout = timeout,
+      witnessType = ConcreteInputs,
+      generalizeTimeout = gTimeout,
+      initTimeout = iTimeout
+      }
+    cbmc = Analyzer {
+      analysisTool = CBMC,
+      analysisName = "cbmc",
+      analysisDir = portfolioDir ++ "CBMC",
+      analysisOptions = [
+        ("--graphml-witness", Just "witness.graphml"),
+        ("--32", Nothing)],
+      safeOverapproximation = False,
+      analysisTimeout = timeout,
+      witnessType = ConcreteInputs,
+      generalizeTimeout = gTimeout,
+      initTimeout = iTimeout
+      }
+    uTaipan = Analyzer {
+      analysisTool = UTaipan,
+      analysisName = "ultimatetaipan",
+      analysisDir = portfolioDir ++ "UTaipan",
+      analysisOptions = [
+        ("--full-output", Nothing),
+        ("--architecture", Just "32bit")],
+      safeOverapproximation = True,
+      analysisTimeout = timeout,
+      witnessType = BranchDirectives,
+      generalizeTimeout = gTimeout,
+      initTimeout = iTimeout
+      }
+    uKojak = Analyzer {
+      analysisTool = UKojak,
+      analysisName = "ultimatekojak",
+      analysisDir = portfolioDir ++ "UKojak",
+      analysisOptions = [
+        ("--full-output", Nothing),
+        ("--architecture", Just "32bit")],
+      safeOverapproximation = True,
+      analysisTimeout = timeout,
+      witnessType = BranchDirectives,
+      generalizeTimeout = gTimeout,
+      initTimeout = iTimeout
+      }
+    cpaBamBnb = Analyzer {
+      analysisTool = CPA_BAM_BnB,
+      analysisName = "cpachecker",
+      analysisDir = portfolioDir ++ "CPA_BAM_BnB",
+      analysisOptions = [
+        ("-svcomp18-bam-bnb", Nothing),
+        ("-disable-java-assertions", Nothing),
+        ("-heap", Just "10000m"),
+        ("-setprop", Just "analysis.checkCounterexamples=false"),
+        ("-setprop", Just "cfa.allowBranchSwapping=false"),
+        ("-setprop", Just "cpa.arg.witness.exportSourcecode=true"),
+        ("-32", Nothing)],
+      safeOverapproximation = True,
+      analysisTimeout = timeout,
+      witnessType = BranchDirectives,
+      generalizeTimeout = gTimeout,
+      initTimeout = iTimeout
+      }
+    pinaka = Analyzer {
+      analysisTool = Pinaka,
+      analysisName = "pinaka",
+      analysisDir = portfolioDir ++ "Pinaka",
+      analysisOptions = [
+        ("--graphml-witness", Just "witness.graphml"),
+        ("--32", Nothing)],
+      safeOverapproximation = True, -- only terminates when all paths are examined
+      analysisTimeout = timeout,
+      witnessType = ConcreteInputs,
+      generalizeTimeout = gTimeout,
+      initTimeout = iTimeout
+      }
+  return [cpaSeq,uAutomizer,esbmc,pesco,symbiotic,veriAbs,twoLs,cbmc,uTaipan,uKojak,cpaBamBnb,pinaka]

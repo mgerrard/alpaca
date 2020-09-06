@@ -16,7 +16,7 @@ function run_test {
     then
       echo "success with $portfolio"
     else
-	if [ $portfolio == "symbiotic" ] && [ $result == "top" ]; then
+	if ([ $portfolio == "symbiotic" ] || [ $portfolio == "cbmc" ]) && [ $result == "top" ]; then
             echo "success with $portfolio"
 	else
 	    echo "FAILURE with portfolio $portfolio"
@@ -34,3 +34,9 @@ run_test "veriAbs"
 run_test "esbmc"
 run_test "symbiotic"
 run_test "pesco"
+run_test "twoLs"
+run_test "cbmc"
+run_test "uTaipan"
+run_test "uKojak"
+run_test "cpaBamBnb"
+run_test "pinaka"

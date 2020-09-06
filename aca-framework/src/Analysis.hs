@@ -262,8 +262,16 @@ writeConfigurationFile c prefix = do
   let configFile = prefix ++ "/config"
   writeFile configFile (show c)
 
+checkFileExists :: FilePath -> IO ()
+checkFileExists f = do
+  fileExists <- doesFileExist f
+  if (not fileExists)
+    then error $ "oops, i can't find '"++f++"'"
+    else return ()
+
 runAca :: Configuration -> IO Csc
 runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPre targetFunc partBound merLen genStrat cppFlags iTimeout exclusion) = do
+  checkFileExists program
   setLibraryEnvironmentVariable
   now <- getCurrentTime
   initProgram <- initialProgram program "" "main" logPre targetFunc cppFlags

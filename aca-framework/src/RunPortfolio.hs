@@ -451,8 +451,6 @@ witnessContainsSource (Analyzer t _ _ _ _ _ _ _ _) = toolWritesSourceInWitness t
 toolWritesSourceInWitness :: AnalysisTool -> Bool
 toolWritesSourceInWitness CPA_Seq = True
 toolWritesSourceInWitness CPA_BAM_BnB = True
-toolWritesSourceInWitness CPA_BAM_Slicing = True
-toolWritesSourceInWitness CPA_Seq_16 = True
 toolWritesSourceInWitness InterpChecker = True
 toolWritesSourceInWitness _ = False
 

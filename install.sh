@@ -138,6 +138,12 @@ download_zip_if_needed "symbiotic" "73653236" "Symbiotic"
 download_zip_if_needed "esbmc" "39176877" "ESBMC"
 download_zip_if_needed "pesco" "289247537" "Pesco"
 download_zip_if_needed "veriabs" "313055755" "VeriAbs"
+download_zip_if_needed "2ls" "3983396" "TwoLS"
+download_zip_if_needed "cbmc" "6832746" "CBMC"
+download_zip_if_needed "utaipan" "84306647" "UTaipan"
+download_zip_if_needed "ukojak" "84301613" "UKojak"
+download_zip_if_needed "cpa-bam-bnb" "101242097" "CPA_BAM_BnB"
+download_zip_if_needed "pinaka" "50696530" "Pinaka"
 
 echo
 echo "Unpacking any zipped SVCOMP archives"
@@ -148,6 +154,12 @@ unpack_and_rename_zip_if_needed "Symbiotic" "symbiotic" "symbiotic"
 unpack_and_rename_zip_if_needed "ESBMC" "esbmc" "esbmc"
 unpack_and_rename_zip_if_needed "Pesco" "pesco" "PeSCo-1.8.2"
 unpack_and_rename_zip_if_needed "VeriAbs" "veriabs"
+unpack_and_rename_zip_if_needed "TwoLS" "2ls" "2ls"
+unpack_and_rename_zip_if_needed "CBMC" "cbmc" "cbmc"
+unpack_and_rename_zip_if_needed "UTaipan" "utaipan" "UTaipan-linux"
+unpack_and_rename_zip_if_needed "UKojak" "ukojak" "UKojak-linux"
+unpack_and_rename_zip_if_needed "CPA_BAM_BnB" "cpa-bam-bnb" "cpa-bam-bnb"
+unpack_and_rename_zip_if_needed "Pinaka" "pinaka" "pinaka"
 
 cd $ROOT
 echo
