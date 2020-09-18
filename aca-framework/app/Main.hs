@@ -48,7 +48,7 @@ configuration = Configuration
       <> showDefault
       <> metavar "FILTER"
       <> value "all"
-      <> help "(all | cpaSeq | uAutomizer | veriAbs | pesco | symbiotic | esbmc | pesco | twoLs | cbmc | uTaipan | uKojak | cpaBamBnb | pinaka (comma-sep. string of tools))")
+      <> help "(all | cpaSeq | uAutomizer | veriAbs | pesco | symbiotic | esbmc | twoLs | cbmc | uTaipan | uKojak | cpaBamBnb | pinaka | (comma-sep. string of tools))")
   <*> option auto
       (  long "generalize-timeout"
       <> help "global t.o. (in s) for generalization phase"
@@ -117,3 +117,9 @@ configuration = Configuration
       <> metavar "FILTER"
       <> value ""
       <> help "selectively exclude analyzers")
+  <*> strOption
+      (  long "dse"
+      <> showDefault
+      <> metavar "TOOL"
+      <> value "cpa"
+      <> help "who runs directed sym-exec to collect condition (civl | cpa)")

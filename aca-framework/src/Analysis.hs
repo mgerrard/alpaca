@@ -162,7 +162,7 @@ classifyResults ev = do
     else ReachableEvidence ev
 
 safetyDeconstructor :: PieceOfEvidence -> String
-safetyDeconstructor (LegitimateEvidence (AnalysisWitness a _ _ _ _ _) _ _) = "  "++(show (analysisTool a))
+safetyDeconstructor (LegitimateEvidence (AnalysisWitness a _ _ _ _ _ _) _ _) = "  "++(show (analysisTool a))
 safetyDeconstructor _ = assert False ""
 
 classifyEarlyResults :: EvidenceCollection -> IO ()
@@ -270,11 +270,11 @@ checkFileExists f = do
     else return ()
 
 runAca :: Configuration -> IO Csc
-runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPre targetFunc partBound merLen genStrat cppFlags iTimeout exclusion) = do
+runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPre targetFunc partBound merLen genStrat cppFlags iTimeout exclusion dseT) = do
   checkFileExists program
   setLibraryEnvironmentVariable
   now <- getCurrentTime
-  initProgram <- initialProgram program "" "main" logPre targetFunc cppFlags
+  initProgram <- initialProgram program "" "main" logPre targetFunc cppFlags (dseChoice dseT)
   end1 <- getCurrentTime
 
   let astReadTime = formatFloatN ((realToFrac $ diffUTCTime end1 now)::Float) 4
@@ -320,7 +320,13 @@ runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPr
     , partitionBound = partBound
     , mergeLength    = merLen
     , genStrategy    = genMode genStrat
+    , dseTool        = dseChoice dseT
     }
+
+dseChoice :: String -> DseTool
+dseChoice "cpa" = CpaSymExec
+dseChoice "civl" = CivlSymExec
+dseChoice s = error $ "sorry, i do not recognize the --dse option '"++s++"'. choose from (cpa | civl)."
 
 setLibraryEnvironmentVariable :: IO ()
 setLibraryEnvironmentVariable = do
@@ -394,8 +400,8 @@ bareProgramName p funcName =
   let baseName = last $ splitOn "/" $ dropExtension p
   in baseName++"_reach_"++funcName
 
-initialProgram :: FilePath -> FilePath -> String -> FilePath -> String -> String -> IO Program
-initialProgram p initCsc "main" logPre targetFunc cppFlags = do
+initialProgram :: FilePath -> FilePath -> String -> FilePath -> String -> String -> DseTool -> IO Program
+initialProgram p initCsc "main" logPre targetFunc cppFlags dTool = do
   let iter = 1
   let n = bareProgramName p targetFunc
   let iterTag = "iter.1"
@@ -405,7 +411,7 @@ initialProgram p initCsc "main" logPre targetFunc cppFlags = do
   p' <- runPreprocessor p cppFlags
   pAst <- getAst p'
   removeFile p'
-  let pAst' = twoPassTransform pAst targetFunc
+  let pAst' = twoPassTransform pAst targetFunc dTool
   let prog = Program {
         sourcePath=filePath
       , ast=pAst'
@@ -415,7 +421,7 @@ initialProgram p initCsc "main" logPre targetFunc cppFlags = do
       }
   return prog
 {- Construct modular ACA program -}
-initialProgram p initCsc funcName logPre targetFunc cppFlags = do
+initialProgram p initCsc funcName logPre targetFunc cppFlags dTool = do
   let iter = 1
   let n = last $ splitOn "/" $ dropExtension p
   let name' = funcName ++ "_aca_" ++ n;
@@ -429,7 +435,7 @@ initialProgram p initCsc funcName logPre targetFunc cppFlags = do
   let newHandle = name' ++ ".c"
   writeFile newHandle (show $ pretty pAst')
   pAst'' <- getAst newHandle
-  let pAst''' = twoPassTransform pAst'' targetFunc
+  let pAst''' = twoPassTransform pAst'' targetFunc dTool
   let prog = Program {
         sourcePath=filePath
       , ast=pAst'''

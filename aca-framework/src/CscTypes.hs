@@ -93,19 +93,23 @@ data InputMapping = InputMapping
 data AnalysisWitness = AnalysisWitness {
   analyzer :: Analyzer,
   programPath :: FilePath,
+  witnessPath :: FilePath,
   isSafe :: Bool,
   branches :: [Branch],
   analysisTime :: Float,
   parsingTime :: Float}
   deriving (Show, Eq)
 
+{- TODO: pass this in as a command line arg -}
+data DseTool = CivlSymExec | CpaSymExec deriving (Show, Eq)
+
 type EvidenceCollection = [PieceOfEvidence]
 
 emptyWitness :: AnalysisWitness
-emptyWitness = AnalysisWitness emptyAnalyzer "" False [] 0 0
+emptyWitness = AnalysisWitness emptyAnalyzer "" "" False [] 0 0
 
 civlWitness :: AnalysisWitness
-civlWitness = AnalysisWitness civlAnalyzer "" False [] 0 0
+civlWitness = AnalysisWitness civlAnalyzer "" "" False [] 0 0
 
 maybeCharacterization :: PieceOfEvidence -> Maybe Subspace
 maybeCharacterization (LegitimateEvidence _ c _) = Just c
@@ -166,7 +170,8 @@ data RunConfiguration = RunConfiguration {
   runExitStrategy :: ExitStrategy,
   runBlockValid :: Bool,
   runLogPrefix :: String,
-  runExitFile :: FilePath
+  runExitFile :: FilePath,
+  runDseTool :: DseTool
   }
 
 data DebugMode =

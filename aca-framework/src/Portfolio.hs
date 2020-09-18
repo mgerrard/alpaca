@@ -261,7 +261,7 @@ fullPortfolio timeout gTimeout iTimeout = do
       analysisName = "cpachecker",
       analysisDir = portfolioDir ++ "CPA_BAM_BnB",
       analysisOptions = [
-        ("-svcomp18-bam-bnb", Nothing),
+        ("-svcomp19-bam-bnb", Nothing),
         ("-disable-java-assertions", Nothing),
         ("-heap", Just "10000m"),
         ("-setprop", Just "analysis.checkCounterexamples=false"),

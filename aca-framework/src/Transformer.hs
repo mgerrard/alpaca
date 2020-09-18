@@ -57,7 +57,8 @@ data TransState = TransState
     inputReads :: [InputRead],
     transCsc :: Maybe Csc,
     transPartition :: Maybe CscPartition,
-    targetFunction :: String
+    targetFunction :: String,
+    dseUsed :: DseTool
   }
   
 setLine :: Int -> Transformer ()
@@ -70,18 +71,18 @@ updateReadType :: CDeclSpec -> Transformer ()
 updateReadType spec =
   modify (\st -> st {inputReads = ((InputRead { inputId = (lineNum st), inputType = spec, inputCount = 0}) : (inputReads st))})
 
-initializeReadsBody :: [InputRead] -> CStat
-initializeReadsBody xs =
+initializeReadsBody :: Bool -> [InputRead] -> CStat
+initializeReadsBody isCivl xs =
   let rs = reverse xs
-      stmts = map (\y -> forStatement (inputId y) (show $ pretty (inputType y))) rs
+      stmts = map (\y -> forStatement isCivl (inputId y) (show $ pretty (inputType y))) rs
       blockItems = map CBlockStmt stmts
   in CCompound [] blockItems undefNode
 
-initializeReadsFunc :: [InputRead] -> CFunDef
-initializeReadsFunc rs =
+initializeReadsFunc :: Bool -> [InputRead] -> CFunDef
+initializeReadsFunc isCivl rs =
   let iden = Ident "initialize_reads()" 0 undefNode
       declr = CDeclr (Just iden) [] Nothing [] undefNode
-      b = initializeReadsBody rs
+      b = initializeReadsBody isCivl rs
   in CFunDef [voidSp] declr [] b undefNode
 
 transformAst :: CTranslUnit -> Transformer CTranslUnit
@@ -92,7 +93,8 @@ transformAst (CTranslUnit es n) = do
     then do
       let readsMap = inputReads st
       let newDecls = map makeGlobalQuadruples readsMap
-      let initFunc = initializeReadsFunc readsMap
+      let isCivl = (dseUsed st)==CivlSymExec
+      let initFunc = initializeReadsFunc isCivl readsMap
       let instrDefs = (join newDecls) ++ [(CFDefExt initFunc), (CFDefExt blockSubspaceFunc)]
       let newDefs = placeInstrumentationAtBeginning instrDefs es'
       let newDefsWithAssume = ensureAssume newDefs
@@ -543,7 +545,7 @@ transformAsm :: CStrLit -> Transformer CStrLit
 transformAsm d = return d
 
 firstPassTransform :: CTranslUnit -> String -> CTranslUnit
-firstPassTransform ast targetFunc = evalState (transformAst ast) (TransState 0 0 FirstPass [] Nothing Nothing targetFunc)
+firstPassTransform ast targetFunc = evalState (transformAst ast) (TransState 0 0 FirstPass [] Nothing Nothing targetFunc CivlSymExec)
 
 initialTransform :: CTranslUnit -> String -> IO CTranslUnit
 initialTransform ast funcName = wrapMainAroundFunc ast funcName
@@ -551,21 +553,21 @@ initialTransform ast funcName = wrapMainAroundFunc ast funcName
 wrapMainAroundFunc :: CTranslUnit -> String -> IO CTranslUnit
 wrapMainAroundFunc ast funcName = makeModularAst ast funcName
 
-twoPassTransform :: CTranslUnit -> String -> CTranslUnit
-twoPassTransform ast targetFunc =
+twoPassTransform :: CTranslUnit -> String -> DseTool -> CTranslUnit
+twoPassTransform ast targetFunc dTool =
   let ast'    = firstPassTransform ast targetFunc
-      fpState = execState (transformAst ast) (TransState 0 0 FirstPass [] Nothing Nothing targetFunc)
+      fpState = execState (transformAst ast) (TransState 0 0 FirstPass [] Nothing Nothing targetFunc dTool)
       c       = lineNum fpState
       hc      = hoistedVarCount fpState
       rTypes  = inputReads fpState
   in
-    evalState (transformAst ast') (TransState c hc SecondPass rTypes Nothing Nothing "")
+    evalState (transformAst ast') (TransState c hc SecondPass rTypes Nothing Nothing "" dTool)
 
 updateTransform :: CTranslUnit -> Csc -> CTranslUnit
-updateTransform ast csc = evalState (transformAst ast) (TransState 0 0 Update [] (Just csc) Nothing "")
+updateTransform ast csc = evalState (transformAst ast) (TransState 0 0 Update [] (Just csc) Nothing "" CivlSymExec)
 
 restrictToGapTransform :: CTranslUnit -> Csc -> CscPartition -> CTranslUnit
-restrictToGapTransform ast csc p = evalState (transformAst ast) (TransState 0 0 RestrictToGap [] (Just csc) (Just p) "")
+restrictToGapTransform ast csc p = evalState (transformAst ast) (TransState 0 0 RestrictToGap [] (Just csc) (Just p) "" CivlSymExec)
 
 parseMyFile :: FilePath -> IO CTranslUnit
 parseMyFile input_file =

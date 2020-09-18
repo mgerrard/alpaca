@@ -102,7 +102,7 @@ intersects gen (_, up) = do
   return (up, result)
 
 checkBoundSatisfiability :: PieceOfEvidence -> AcaComputation ()
-checkBoundSatisfiability (LegitimateEvidence (AnalysisWitness _ _ False _ _ _) (Subspace cs _ _ _) _) = do
+checkBoundSatisfiability (LegitimateEvidence (AnalysisWitness _ _ _ False _ _ _) (Subspace cs _ _ _) _) = do
   let c' = makeConjunctionExpr $ map (\(Conjunct c)->c) cs
   let names = nub $ map extractVarName $ extractCIndexes c'
   _ <- io $ isSat c' names

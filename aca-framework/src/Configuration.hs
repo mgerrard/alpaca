@@ -17,6 +17,7 @@ data Configuration = Configuration
   , cppParam :: String
   , initTimeoutParam :: Int
   , excludeParam :: String
+  , dseParam :: String
   } deriving (Show)
 
 data CountConfiguration = CountConfiguration { cscFileToCount :: String }

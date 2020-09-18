@@ -272,8 +272,8 @@ forComparison n = makeLtExpr "i" $ acaNumPrefix ++ (show n)
 forIncrement :: CExpr
 forIncrement = makeVar "i++"
 
-forBody :: Int -> String -> CStat
-forBody n ty =
+forBody :: Bool -> Int -> String -> CStat
+forBody isCivl n ty =
   let ty'  = typeTag ty
       tmpName = "tmp_" ++ acaArrPrefix ++ ty' ++ "_" ++ (show n)
       expr1 = declareVarInit intType tmpName ("__VERIFIER_nondet_" ++ ty' ++ "()")
@@ -283,7 +283,7 @@ forBody n ty =
       expr2 = CExpr (Just expr) undefNode
       blockExpr2 = CBlockStmt expr2
   in
-    if isBounded ty'
+    if (isCivl && (isBounded ty'))
       then
         let maxB = maxAssumption idxVarName (maxValue ty')
             minB = minAssumption idxVarName (minValue ty')
@@ -328,9 +328,9 @@ minAssumption varName val =
       expr = makeVar exprStr
   in CBlockStmt (CExpr (Just expr) undefNode)
 
-forStatement :: Int -> String -> CStat
-forStatement n ty = CFor (Right forDecl) (Just (forComparison n)) (Just forIncrement)
-                      (forBody n ty) undefNode
+forStatement :: Bool -> Int -> String -> CStat
+forStatement isCivl n ty = CFor (Right forDecl) (Just (forComparison n)) (Just forIncrement)
+                      (forBody isCivl n ty) undefNode
 
 typeTag :: String -> String
 typeTag "_Bool" = "bool"
