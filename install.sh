@@ -35,7 +35,7 @@ function check_stack_version {
 function check_java_version {
     java_version=$(java -version 2>&1 | head -n 1 | awk -F '"' '{print $2}')
     verlt $java_version 11 && {
-	echo "Please update your version of Java to 11; this version is required by CPA's symbolic executor.";
+	echo "Please install Java 11; this version is required by CPA's symbolic executor.";
 	exit 1;
     }
 }
@@ -54,7 +54,7 @@ function does_package_exist {
 
 check_for_stack
 check_stack_version
-check_for check_java_version
+check_java_version
 check_for "python3"
 check_for_python_3_6
 check_for_python
