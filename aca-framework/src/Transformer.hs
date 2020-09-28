@@ -51,25 +51,26 @@ type Transformer a = State TransState a
 
 data Stage = FirstPass | SecondPass | Update | RestrictToGap deriving (Eq, Show)
 data TransState = TransState
-  { lineNum :: Int,
+  { count :: Int,
     hoistedVarCount :: Int,
     stage :: Stage,
     inputReads :: [InputRead],
     transCsc :: Maybe Csc,
     transPartition :: Maybe CscPartition,
     targetFunction :: String,
-    dseUsed :: DseTool
+    dseUsed :: DseTool,
+    maybeCud :: Maybe String
   }
   
-setLine :: Int -> Transformer ()
-setLine l = modify (\st -> st {lineNum = l})
+incrCount :: Transformer ()
+incrCount = modify (\st -> st {count = 1 + (count st)})
 
 incrHoistedVarCount :: Transformer ()
 incrHoistedVarCount = modify (\st -> st {hoistedVarCount = 1 + (hoistedVarCount st)})
 
 updateReadType :: CDeclSpec -> Transformer ()
 updateReadType spec =
-  modify (\st -> st {inputReads = ((InputRead { inputId = (lineNum st), inputType = spec, inputCount = 0}) : (inputReads st))})
+  modify (\st -> st {inputReads = ((InputRead { inputId = (count st), inputType = spec, inputCount = 0}) : (inputReads st))})
 
 initializeReadsBody :: Bool -> [InputRead] -> CStat
 initializeReadsBody isCivl xs =
@@ -277,14 +278,14 @@ transformFDef :: CFunDef -> Transformer CFunDef
 transformFDef (CFunDef p1 declr p3 b p5) = do
   body' <- transformStat b
   st <- get
-  let body'' = transformFunBodies (stage st) declr body' (transCsc st) (transPartition st) (targetFunction st)
+  let body'' = transformFunBodies (stage st) (maybeCud st) declr body' (transCsc st) (transPartition st) (targetFunction st)
   return $ CFunDef p1 declr p3 body'' p5
 
 prependAssertion :: CStat -> CStat
 prependAssertion s = CCompound [] [CBlockStmt trueWrappedError, CBlockStmt s] undefNode
 
-transformFunBodies :: Stage -> CDeclr -> CStat -> Maybe Csc -> Maybe CscPartition -> String -> CStat
-transformFunBodies theStage declr origBody csc p targetFunc
+transformFunBodies :: Stage -> Maybe String -> CDeclr -> CStat -> Maybe Csc -> Maybe CscPartition -> String -> CStat
+transformFunBodies theStage mCud declr origBody csc p targetFunc
   | theStage == FirstPass =
       if (targetFunc == "__VERIFIER_error")
          then origBody
@@ -296,8 +297,16 @@ transformFunBodies theStage declr origBody csc p targetFunc
         then
           let iCall = makeCCallBlockItem "initialize_reads"
               bCall = makeCCallBlockItem "block_subspace"
-              newBody = CCompound [] [iCall, bCall, CBlockStmt origBody] undefNode
-          in newBody
+          in
+            if (isJust mCud)
+              then
+                let (Just cud) = mCud
+                    cudAssume = blockCudSubspace cud
+                    newBody = CCompound [] [iCall, cudAssume, bCall, CBlockStmt origBody] undefNode
+                in newBody
+              else
+                let newBody = CCompound [] [iCall, bCall, CBlockStmt origBody] undefNode
+                in newBody
         else origBody
   | theStage == Update =
       if (functionNameIs "block_subspace()" declr)
@@ -349,6 +358,12 @@ makeAssumeBody partitions =
   let as = concat $ map assumptions partitions
       assumeStmts = map assumeSubspace as
   in CCompound [] assumeStmts undefNode
+
+blockCudSubspace :: String -> CBlockItem
+blockCudSubspace s =
+  let assump = "__VERIFIER_assume"++s
+      stmt = (CExpr (Just (makeVar assump))) undefNode
+  in CBlockStmt stmt
 
 blockSubspace :: Conjunction -> CBlockItem
 blockSubspace conj =
@@ -545,7 +560,10 @@ transformAsm :: CStrLit -> Transformer CStrLit
 transformAsm d = return d
 
 firstPassTransform :: CTranslUnit -> String -> CTranslUnit
-firstPassTransform ast targetFunc = evalState (transformAst ast) (TransState 0 0 FirstPass [] Nothing Nothing targetFunc CivlSymExec)
+firstPassTransform ast targetFunc = evalState (transformAst ast) (TransState 0 0 FirstPass [] Nothing Nothing targetFunc CivlSymExec Nothing)
+
+countAfterFirstPass :: CTranslUnit -> Int
+countAfterFirstPass ast = count $ execState (transformAst ast) (TransState 0 0 FirstPass [] Nothing Nothing "" CivlSymExec Nothing)
 
 initialTransform :: CTranslUnit -> String -> IO CTranslUnit
 initialTransform ast funcName = wrapMainAroundFunc ast funcName
@@ -553,21 +571,21 @@ initialTransform ast funcName = wrapMainAroundFunc ast funcName
 wrapMainAroundFunc :: CTranslUnit -> String -> IO CTranslUnit
 wrapMainAroundFunc ast funcName = makeModularAst ast funcName
 
-twoPassTransform :: CTranslUnit -> String -> DseTool -> CTranslUnit
-twoPassTransform ast targetFunc dTool =
+twoPassTransform :: CTranslUnit -> String -> DseTool -> Maybe String -> CTranslUnit
+twoPassTransform ast targetFunc dTool mCud =
   let ast'    = firstPassTransform ast targetFunc
-      fpState = execState (transformAst ast) (TransState 0 0 FirstPass [] Nothing Nothing targetFunc dTool)
-      c       = lineNum fpState
+      fpState = execState (transformAst ast) (TransState 0 0 FirstPass [] Nothing Nothing targetFunc dTool Nothing)
+      c       = count fpState
       hc      = hoistedVarCount fpState
       rTypes  = inputReads fpState
   in
-    evalState (transformAst ast') (TransState c hc SecondPass rTypes Nothing Nothing "" dTool)
+    evalState (transformAst ast') (TransState c hc SecondPass rTypes Nothing Nothing "" dTool mCud)
 
 updateTransform :: CTranslUnit -> Csc -> CTranslUnit
-updateTransform ast csc = evalState (transformAst ast) (TransState 0 0 Update [] (Just csc) Nothing "" CivlSymExec)
+updateTransform ast csc = evalState (transformAst ast) (TransState 0 0 Update [] (Just csc) Nothing "" CivlSymExec Nothing)
 
 restrictToGapTransform :: CTranslUnit -> Csc -> CscPartition -> CTranslUnit
-restrictToGapTransform ast csc p = evalState (transformAst ast) (TransState 0 0 RestrictToGap [] (Just csc) (Just p) "" CivlSymExec)
+restrictToGapTransform ast csc p = evalState (transformAst ast) (TransState 0 0 RestrictToGap [] (Just csc) (Just p) "" CivlSymExec Nothing)
 
 parseMyFile :: FilePath -> IO CTranslUnit
 parseMyFile input_file =
@@ -587,46 +605,33 @@ makeTypedRead ty =
 intRead :: CExpr
 intRead = makeTypedRead "int"
 
-extractDeclLineNum :: CDecl -> Int
-extractDeclLineNum (CDecl _ _ (OnlyPos (pos) _)) = extractPosLinNum pos
-extractDeclLineNum (CDecl _ _ (NodeInfo (pos) _ _)) = extractPosLinNum pos
-extractDeclLineNum (CStaticAssert _ _ _) = error $ "Can't extract the line num from a  CStaticAssert."
-
-extractPosLinNum :: Position -> Int
-extractPosLinNum (Position _ l _ _) = l
-extractPosLinNum _ = 25 -- Hey Patrick, I thought of something funnier than 24
---extractPosLinNum _ = error $ "This line number cannot be extracted."
-
 transformDeclInstr :: CDecl -> Transformer [CBlockItem]
 transformDeclInstr decl = do
-  let l        = extractDeclLineNum decl
+  st <- get
+  let c        = count st
   let origVar  = extractDeclVarStr decl
   let typeStr  = extractInitTypeStr decl
   let typeSpec = extractInitType decl
   let tyInfix  = typeInfix typeSpec
-  let newVar   = "aca_input_var_"++tyInfix++(show l)
-  let ifElse   = makeInstrIfElseExpr l newVar tyInfix typeStr
+  let newVar   = "aca_input_var_"++tyInfix++(show c)
+  let ifElse   = makeInstrIfElseExpr c newVar tyInfix typeStr  
   let newDecl = declareVarInit typeSpec origVar newVar
-  setLine l
   updateReadType typeSpec
+  incrCount  
   return [(CBlockStmt ifElse),(CBlockDecl newDecl)]
-
-extractAssignLineNum :: CExpr -> Int
-extractAssignLineNum (CAssign _ _ _ (OnlyPos (pos) _)) = extractPosLinNum pos
-extractAssignLineNum (CAssign _ _ _ (NodeInfo (pos) _ _)) = extractPosLinNum pos
-extractAssignLineNum _ = error $ "Can't extract the read line num from a non-C assign."
 
 transformAssign :: CExpr -> Transformer [CBlockItem]
 transformAssign expr = do
-  let l         = extractAssignLineNum expr
+  st <- get
+  let c         = count st
   let lhs       = grabAssignLhs expr
   let fCallStr  = grabFuncCallId expr
   let typeStr   = grabTypeStr fCallStr
   let typeSpec  = makeTypeSpec typeStr
   let tyInfix  = typeInfix typeSpec
-  let newVar    = "aca_input_var_"++tyInfix++(show l)
-  let ifElse    = makeInstrIfElseExpr l newVar tyInfix typeStr
+  let newVar    = "aca_input_var_"++tyInfix++(show c)
+  let ifElse    = makeInstrIfElseExpr c newVar tyInfix typeStr
   let newAssign = CAssign CAssignOp lhs (makeVar newVar) undefNode
-  setLine l
   updateReadType typeSpec
+  incrCount
   return [(CBlockStmt ifElse),(CBlockStmt (CExpr (Just newAssign) undefNode))]

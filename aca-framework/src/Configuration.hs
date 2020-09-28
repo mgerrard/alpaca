@@ -18,6 +18,8 @@ data Configuration = Configuration
   , initTimeoutParam :: Int
   , excludeParam :: String
   , dseParam :: String
+  , makeCudParam :: Bool
+  , chewCudParam :: String
   } deriving (Show)
 
 data CountConfiguration = CountConfiguration { cscFileToCount :: String }

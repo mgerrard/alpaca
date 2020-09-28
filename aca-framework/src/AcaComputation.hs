@@ -33,7 +33,9 @@ data AcaState = AcaState {
   partitionBound :: Int,
   mergeLength    :: Int,
   genStrategy    :: GenStrategy,
-  dseTool        :: DseTool
+  dseTool        :: DseTool,
+  makeCud        :: Bool,
+  chewCud        :: String
   } deriving (Show)
 
 data Program = Program {
@@ -398,14 +400,29 @@ writeExitSummary exitFile message = do
 trueConjunct :: Conjunct
 trueConjunct = Conjunct (CConst (CIntConst (cInteger 1) undefNode))
 
+falseConjunct :: Conjunct
+falseConjunct = Conjunct (CConst (CIntConst (cInteger 0) undefNode))
+
 trueConjunction :: Conjunction
 trueConjunction = [trueConjunct]
+
+falseConjunction :: Conjunction
+falseConjunction = [falseConjunct]
 
 emptyConjunction :: Conjunction
 emptyConjunction = []
 
 makeTrueUpper :: UpperBound
 makeTrueUpper = UpperBound trueConjunction [emptyConjunction]
+
+makeFalseUpper :: UpperBound
+makeFalseUpper = UpperBound falseConjunction [emptyConjunction]
+
+makeTrueLower :: LowerBound
+makeTrueLower = [trueConjunction]
+
+makeFalseLower :: LowerBound
+makeFalseLower = [falseConjunction]
 
 upperBounds :: Csc -> [Conjunction]
 upperBounds csc = map (upper . upperBound) $ disjointPartitions csc
@@ -532,5 +549,16 @@ showEvidenceSummary (EmptyEvidence (AnalysisWitness a _ _ _ _ t _)) = (show a)++
 showMinimalConjunction :: Conjunction -> String
 showMinimalConjunction cs = concat $ intersperse " && " (map (\(Conjunct c) -> "("++(simplifyCee $ show $ pretty c)++")")  cs)
 
+showConjunction :: Conjunction -> String
+showConjunction cs = concat $ intersperse " && " (map (\(Conjunct c) -> "("++(show $ pretty c)++")")  cs)
+
 simplifyCee :: String -> String
 simplifyCee = replace "aca_input_arr" "X"
+
+checkForSafety :: Csc -> Csc
+checkForSafety csc@(Csc dps a b c d) =
+  if null dps
+    then
+      let safePartition = CscPartition makeFalseUpper makeFalseLower []
+      in Csc [safePartition] a b c d
+    else csc

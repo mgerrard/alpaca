@@ -123,3 +123,12 @@ configuration = Configuration
       <> metavar "TOOL"
       <> value "cpa"
       <> help "who runs directed sym-exec to collect condition (civl | cpa)")
+  <*> switch
+      (  long "make-cud"
+      <> help "Produce a .cud file for later digestion after first iteration" )
+  <*> strOption
+      (  long "chew-cud"
+      <> showDefault
+      <> metavar "CUD_FILE"
+      <> value ""
+      <> help "Pass in .cud file to see if ALPACA can chew on a subspace." )

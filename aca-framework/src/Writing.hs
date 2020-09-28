@@ -54,7 +54,7 @@ showUpperBound p =
       negations = upperNegations up
       negationsString = concat $ intersperse " OR " (map showMinimalConjunction negations)
   in
-    if (null negations)
+    if (null negationsString)
       then upperString
       else upperString ++ " MINUS: " ++ negationsString
 
