@@ -73,8 +73,6 @@ library:
     - Writing
     - Statistics
     - LaunchBenchexec
-    - Octagon
-    - Widening
     - Reading
     - Characterize
 

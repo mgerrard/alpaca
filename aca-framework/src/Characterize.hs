@@ -5,10 +5,8 @@ import CscTypes
 import Solver
 import Data.Maybe (catMaybes)
 import Data.List (nubBy, sortBy)
-import Octagon
 import Control.Monad.State
 import Control.Monad (when)
-import qualified Widening as W
 import qualified Data.Map.Strict as Map
 import Data.Foldable (foldrM)
 import BinarySearch
@@ -53,21 +51,6 @@ generalize csc = do
   endGeneralizeTime
   getCsc
 
-widenLastPartitions :: [Subspace] -> Csc -> AcaComputation Conjunction
-widenLastPartitions exactSubspace csc = do
-  m <- getMergeLength
-  
-  let mPartitions = take (m-1) (reverse (disjointPartitions csc))
-  let mConjunctions = map (upper . upperBound) mPartitions
-  let mCs = mConjunctions++(map conjunction exactSubspace)
-  octParts <- io $ mapM (octagonConstraints 100 (-100)) mCs
-  let potentConstraints = map (\os -> concat $ (map (\o->W.toPotentialForm o) os)) octParts
-  {- Reduce the m octagons into a single one via widening -}
-  p' <- foldrM applyWidening (last potentConstraints) (init potentConstraints)
-  {- update log -}
-  updateLog $ "widened the last "++(show m)++" partitions\n"
-  return $ map W.potentialToConjunct p'
-
 widenCscWithConjunction :: Csc -> Conjunction -> AcaComputation ()
 widenCscWithConjunction _ [] = do
   moveToTop
@@ -79,23 +62,6 @@ widenCscWithConjunction csc c = do
   {- update log -}
   updateLog $ "widening CSC with this conjunction:\n "++(showMinimalConjunction c)++"\n"
   st <- get; put $ st { stateCsc = csc' }
-
-applyWidening :: [W.PotentialConstraint] -> [W.PotentialConstraint] -> AcaComputation [W.PotentialConstraint]
-applyWidening p1 p2 = do
-  let dbm1 = W.makeDbm p1 p2 {- The second potential constraint is passed in -}
-  let dbm2 = W.makeDbm p2 p1 {- to ensure the matrices are the same size -}
-  let dbm3 = W.widen dbm1 dbm2
-
-  {- update log, using the below -}
-  let str1 = "previous DBM:\n"
-  let str2 = str1++(W.displayStr dbm1)++"\n"
-  let str3 = str2++"current DBM:\n"
-  let str4 = str3++(W.displayStr dbm2)++"\n"        
-  let str5 = str4++"widened DBM:\n"
-  let str6 = str5++(W.displayStr dbm3)++"\n"
-  updateLog str6
-
-  return $ W.dbmToPotentialConstraints dbm3
 
 enrichValidSpace :: [Subspace] -> AcaComputation ()
 enrichValidSpace subs = do

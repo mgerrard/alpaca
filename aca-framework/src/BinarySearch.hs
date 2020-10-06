@@ -14,7 +14,6 @@ import Data.Maybe (catMaybes, isJust)
 import Data.Time
 import RunPortfolio
 import Portfolio
-import Octagon
 import Solver
 import SolverLib
 import Data.SBV hiding (isSafe)
@@ -429,18 +428,6 @@ getLevelElements PessimisticDisEq l (SearchContext _ conj _ _ _ _) = do
   {- Either singletons or pairs -}
   let conjunctions = sort $ combinations l conj
   return $ zip [0..] conjunctions
-{-
-  octagonConjuncts <- mapM octagonalizeConjunct conj
-  let octagonConjuncts' = filter (not . null) octagonConjuncts
-  io $ putStrLn "Showing the octagons:"
-  io $ mapM_ (putStrLn . show) octagonConjuncts'
-  return $ zip [0..] octagonConjuncts'
--}
-
-octagonalizeConjunct :: Conjunct -> AcaComputation Conjunction
-octagonalizeConjunct c = do
-  oct <- io $ octagonalize [c] cMaxInt (cMinInt)
-  return oct
   
 -- solution taken from:
 -- stackoverflow.com/questions/43229580/combinations-of-k-elements-from-set-n-haskell

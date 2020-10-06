@@ -180,7 +180,7 @@ isSatRes _ = False
 
 isUnknownRes :: (Conjunction, SatResult) -> Bool
 isUnknownRes (_, (SatResult (Unknown _ _))) = True
-isUnknownRes (_, (SatResult (ProofError _ _))) = True
+isUnknownRes (_, (SatResult (ProofError _ _ _))) = True
 isUnknownRes _ = False
 
 isUnsatRes :: (Conjunction, SatResult) -> Bool
@@ -201,5 +201,5 @@ hasCounterExample _ = False
 
 proofUnknown  :: (Conjunction, ThmResult) -> Bool
 proofUnknown (_, (ThmResult (Unknown _ _))) = True
-proofUnknown (_, (ThmResult (ProofError _ _))) = True
+proofUnknown (_, (ThmResult (ProofError _ _ _))) = True
 proofUnknown _ = False
