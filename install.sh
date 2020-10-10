@@ -66,6 +66,7 @@ check_for "git"
 does_package_exist "libc6-dev-i386"
 does_package_exist "python-pycparser"
 does_package_exist "libgmp-dev"
+does_package_exist "libtinfo-dev"
 
 ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 ANALYZERS="$ROOT/tools/analyzer-portfolio/"
