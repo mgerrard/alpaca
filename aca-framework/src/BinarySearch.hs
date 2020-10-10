@@ -63,7 +63,7 @@ bestOverapproximators _ = False
 singletonSearch :: GenStrategy -> AcaComputation GeneralizeResult
 singletonSearch strat = do
   st <- get
-  let (AcaState prog csc pfolio d _ _ _ _ _ _ _ _ _ _ _ _ _ _) = st
+  let (AcaState prog csc pfolio d _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _) = st
   let smallPfolio = filter bestOverapproximators pfolio
   let debug = ((d == Full) || (d == Generalize))
   if debug then do io $ putStrLn "** Generalizing **" else return ()
@@ -111,7 +111,7 @@ singletonSearch strat = do
 heuristicSearch :: GenStrategy -> AcaComputation GeneralizeResult
 heuristicSearch strat = do
   st <- get
-  let (AcaState prog csc pfolio d _ _ _ _ _ _ _ _ _ _ _ _ _ _) = st
+  let (AcaState prog csc pfolio d _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _) = st
   let debug = ((d == Full) || (d == Generalize))
   if debug then do io $ putStrLn "** Generalizing **" else return ()
   byPred assert "There is some partition describing reachability"
@@ -197,7 +197,7 @@ heuristicSearch strat = do
 binarySearch :: GenStrategy -> AcaComputation GeneralizeResult
 binarySearch strat = do
   st <- get
-  let (AcaState prog csc pfolio d _ _ _ _ _ _ _ _ _ _ _ _ _ _) = st
+  let (AcaState prog csc pfolio d _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _) = st
   let debug = ((d == Full) || (d == Generalize))
   if debug then do io $ putStrLn "** Generalizing **" else return ()
   byPred assert "There is some partition describing reachability"
@@ -288,7 +288,7 @@ concatQuads xs =
   in concat tuplesLists
 
 isNewGenEvidence :: Csc -> (PieceOfEvidence, Conjunction, Csc, Float) -> Bool
-isNewGenEvidence _ ((LegitimateEvidence (AnalysisWitness _ _ True _ _ _) _ _), _, _, _) = True
+isNewGenEvidence _ ((LegitimateEvidence (AnalysisWitness _ _ _ True _ _ _) _ _), _, _, _) = True
 isNewGenEvidence _ ((SpuriousEvidence _ _ _), _, _, _) = False
 isNewGenEvidence csc (e, _, _, _) =
   let subspace = (conjunction . characterization) e

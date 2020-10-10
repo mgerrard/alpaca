@@ -4,6 +4,7 @@
 *.lock
 *.cabal
 tools/analyzer-portfolio/svcomp_archives/
+tools/analyzer-portfolio/cpa_symexec/cpachecker/
 CIVLREP/
 logs_alpaca/
 *.tmp

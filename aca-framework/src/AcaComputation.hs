@@ -32,7 +32,10 @@ data AcaState = AcaState {
   octagon        :: Bool,
   partitionBound :: Int,
   mergeLength    :: Int,
-  genStrategy    :: GenStrategy
+  genStrategy    :: GenStrategy,
+  dseTool        :: DseTool,
+  makeCud        :: Bool,
+  chewCud        :: String
   } deriving (Show)
 
 data Program = Program {
@@ -55,7 +58,7 @@ data Counter = Counter {
 -- Helper methods
 
 isNewEvidence :: Csc -> PieceOfEvidence -> Bool
-isNewEvidence _ (LegitimateEvidence (AnalysisWitness _ _ True _ _ _) _ _) = True
+isNewEvidence _ (LegitimateEvidence (AnalysisWitness _ _ _ True _ _ _) _ _) = True
 isNewEvidence csc (SpuriousEvidence _ spuriousEvidence _) =
   let subspace = conjunction spuriousEvidence
   in (not $ null subspace) && (not $ subspace `elem` (spuriousSpace csc))
@@ -341,18 +344,23 @@ collectSummaries [] = ["No new reachability evidence found. Generalizing."]
 collectSummaries e = sort $ map summarizePieceOfEvidence e
 
 summarizePieceOfEvidence :: PieceOfEvidence -> String
-summarizePieceOfEvidence (LegitimateEvidence (AnalysisWitness a _ True _ _ _) _ _) = "\n"++(show a)++" declares unreachability.\n\n_ Terminating ALPACA _________________"
-summarizePieceOfEvidence (LegitimateEvidence (AnalysisWitness a _ _ _ _ _) _ _) = "\n"++(show a)++" found reachability evidence.\n(Adding reachability condition to CSC.)"
-summarizePieceOfEvidence (SpuriousEvidence (AnalysisWitness a _ _ _ _ _) _ _) = (show a)++" reported spurious evidence."
-summarizePieceOfEvidence (EmptyEvidence (AnalysisWitness a _ _ _ _ _)) = (show a)++"'s witness did not produce any evidence."
+summarizePieceOfEvidence (LegitimateEvidence (AnalysisWitness a _ _ True _ _ _) _ _) = "\n"++(show a)++" declares unreachability.\n\n_ Terminating ALPACA _________________"
+summarizePieceOfEvidence (LegitimateEvidence (AnalysisWitness a _ _ _ _ _ _) _ _) = "\n"++(show a)++" found reachability evidence.\n(Adding reachability condition to CSC.)"
+summarizePieceOfEvidence (SpuriousEvidence (AnalysisWitness a _ _ _ _ _ _) _ _) = (show a)++" reported spurious evidence."
+summarizePieceOfEvidence (EmptyEvidence (AnalysisWitness a _ _ _ _ _ _)) = (show a)++"'s witness did not produce any evidence."
 summarizePieceOfEvidence TrivialEvidence = "Trivial evidence reported (all inputs reach psi-state)"
 
 setupRunConfiguration :: Maybe Int -> AcaComputation RunConfiguration
 setupRunConfiguration tag = do
   debugMode <- getDebugMode; exitStrat <- getExitStrategy;
   bValid <- shouldBlockValid; parallelism <- getParallelism
-  logPre <- getLogPrefix; exitF <- getExitSummaryFile
-  return (RunConfiguration parallelism debugMode tag exitStrat bValid logPre exitF)
+  logPre <- getLogPrefix; exitF <- getExitSummaryFile; dTool <- getDseTool
+  return (RunConfiguration parallelism debugMode tag exitStrat bValid logPre exitF dTool)
+
+getDseTool :: AcaComputation DseTool
+getDseTool = do
+  st <- get
+  return $ dseTool st
 
 getExitSummaryFile :: AcaComputation FilePath
 getExitSummaryFile = do
@@ -392,14 +400,29 @@ writeExitSummary exitFile message = do
 trueConjunct :: Conjunct
 trueConjunct = Conjunct (CConst (CIntConst (cInteger 1) undefNode))
 
+falseConjunct :: Conjunct
+falseConjunct = Conjunct (CConst (CIntConst (cInteger 0) undefNode))
+
 trueConjunction :: Conjunction
 trueConjunction = [trueConjunct]
+
+falseConjunction :: Conjunction
+falseConjunction = [falseConjunct]
 
 emptyConjunction :: Conjunction
 emptyConjunction = []
 
 makeTrueUpper :: UpperBound
 makeTrueUpper = UpperBound trueConjunction [emptyConjunction]
+
+makeFalseUpper :: UpperBound
+makeFalseUpper = UpperBound falseConjunction [emptyConjunction]
+
+makeTrueLower :: LowerBound
+makeTrueLower = [trueConjunction]
+
+makeFalseLower :: LowerBound
+makeFalseLower = [falseConjunction]
 
 upperBounds :: Csc -> [Conjunction]
 upperBounds csc = map (upper . upperBound) $ disjointPartitions csc
@@ -511,20 +534,31 @@ witnessIsConcrete (Analyzer _ _ _ _ _ _ ConcreteInputs _ _) = True
 witnessIsConcrete _ = False
 
 showEvidenceSummary :: PieceOfEvidence -> String
-showEvidenceSummary (LegitimateEvidence (AnalysisWitness a _ True _ t _) _ _) = (show a)++" proved unreachability after "++(showFl t)++"s\n\n"
-showEvidenceSummary (LegitimateEvidence (AnalysisWitness a _ False _ t pt) ss ct) =
+showEvidenceSummary (LegitimateEvidence (AnalysisWitness a _ _ True _ t _) _ _) = (show a)++" proved unreachability after "++(showFl t)++"s\n\n"
+showEvidenceSummary (LegitimateEvidence (AnalysisWitness a _ _ False _ t pt) ss ct) =
   if (witnessIsConcrete a)
     then (show a)++" found legitimate reachability after "++(showFl t)++"s:\n"++(makeSubspaceMsg' ss ct pt)++"\n"
     else (show a)++" found legitimate reachability after "++(showFl t)++"s:\n"++(makeSubspaceMsg ss ct pt)++"\n"
-showEvidenceSummary (SpuriousEvidence (AnalysisWitness a _ _ _ t pt) ss ct) =
+showEvidenceSummary (SpuriousEvidence (AnalysisWitness a _ _ _ _ t pt) ss ct) =
   if (witnessIsConcrete a)
     then (show a)++" found spurious reachability evidence after "++(showFl t)++"s\n"++(makeSubspaceMsg' ss ct pt)++"\n"
     else (show a)++" found spurious reachability evidence after "++(showFl t)++"s\n"++(makeSubspaceMsg ss ct pt)++"\n"
 showEvidenceSummary TrivialEvidence = "CIVL reasoned that all paths lead to the psi-state (trivial reachability)\n"
-showEvidenceSummary (EmptyEvidence (AnalysisWitness a _ _ _ t _)) = (show a)++" returned evidence without directives after "++(showFl t)++"s\n"
+showEvidenceSummary (EmptyEvidence (AnalysisWitness a _ _ _ _ t _)) = (show a)++" returned evidence without directives after "++(showFl t)++"s\n"
 
 showMinimalConjunction :: Conjunction -> String
 showMinimalConjunction cs = concat $ intersperse " && " (map (\(Conjunct c) -> "("++(simplifyCee $ show $ pretty c)++")")  cs)
 
+showConjunction :: Conjunction -> String
+showConjunction cs = concat $ intersperse " && " (map (\(Conjunct c) -> "("++(show $ pretty c)++")")  cs)
+
 simplifyCee :: String -> String
 simplifyCee = replace "aca_input_arr" "X"
+
+checkForSafety :: Csc -> Csc
+checkForSafety csc@(Csc dps a b c d) =
+  if null dps
+    then
+      let safePartition = CscPartition makeFalseUpper makeFalseLower []
+      in Csc [safePartition] a b c d
+    else csc

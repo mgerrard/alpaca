@@ -9,13 +9,16 @@ import Data.Time
 
 enforceDisjointness :: Csc -> AcaComputation Csc
 enforceDisjointness csc = do
-  start <- io $ getCurrentTime
-  partitions <- mapM updateOverlaps (zip [0..] (disjointPartitions csc))
-  end <- io $ getCurrentTime
-  let t = formatFloatN ((realToFrac $ diffUTCTime end start)::Float) 4
-  updateLog $ "enforcing disjointness took "++t++"s\n"
-  let csc' = csc { disjointPartitions = partitions }
-  return csc'
+  if (length $ disjointPartitions csc) > 1
+    then do
+      start <- io $ getCurrentTime
+      partitions <- mapM updateOverlaps (zip [0..] (disjointPartitions csc))
+      end <- io $ getCurrentTime
+      let t = formatFloatN ((realToFrac $ diffUTCTime end start)::Float) 4
+      updateLog $ "enforcing disjointness took "++t++"s\n"
+      let csc' = csc { disjointPartitions = partitions }
+      return csc'
+    else return csc
 
 updateOverlaps :: (Int, CscPartition) -> AcaComputation CscPartition
 updateOverlaps (idx, (CscPartition (UpperBound u _) lb as)) = do
@@ -102,7 +105,7 @@ intersects gen (_, up) = do
   return (up, result)
 
 checkBoundSatisfiability :: PieceOfEvidence -> AcaComputation ()
-checkBoundSatisfiability (LegitimateEvidence (AnalysisWitness _ _ False _ _ _) (Subspace cs _ _ _) _) = do
+checkBoundSatisfiability (LegitimateEvidence (AnalysisWitness _ _ _ False _ _ _) (Subspace cs _ _ _) _) = do
   let c' = makeConjunctionExpr $ map (\(Conjunct c)->c) cs
   let names = nub $ map extractVarName $ extractCIndexes c'
   _ <- io $ isSat c' names
@@ -138,12 +141,24 @@ addPartition csc p =
 
 coversDomain :: Csc -> AcaComputation Bool
 coversDomain csc = do
-  let cs = upperBounds csc
-      upperConjuncts = map (\conj->makeConjunctionExpr $ map (\(Conjunct c)->c) conj) cs
-      disj = makeDisjunctionExpr upperConjuncts
-      env = nub $ map extractVarName $ extractCIndexes disj
-  r <- io $ disjunctionEqualsTrue disj env
-  if (impliesTrue r)
-    then return True
-    else return False
+  if (length $ disjointPartitions csc) > 1
+    then do
+      let cs = upperBounds csc
+          upperConjuncts = map (\conj->makeConjunctionExpr $ map (\(Conjunct c)->c) conj) cs
+          disj = makeDisjunctionExpr upperConjuncts
+          env = nub $ map extractVarName $ extractCIndexes disj
+      r <- io $ disjunctionEqualsTrue disj env
+      if (impliesTrue r)
+        then return True
+        else return False
+    else do
+      if (singleUpperBoundIsTrue csc)
+        then return True
+        else return False
+
+singleUpperBoundIsTrue :: Csc -> Bool
+singleUpperBoundIsTrue csc =
+  if (length $ disjointPartitions csc) /= 1
+    then error "oops, expecting a single partition with a nonempty upper bound"
+    else (upperBounds csc) == [trueConjunction]
 

@@ -60,6 +60,7 @@ library:
     - LocalPaths
     - Branch
     - CivlParsing
+    - CpaParsing
     - Parsing
     - Transformer
     - CscTypes

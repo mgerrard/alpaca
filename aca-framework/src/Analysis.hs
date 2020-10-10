@@ -43,7 +43,8 @@ aca program csc = do
 
 lastWrites :: Csc -> AcaComputation ()
 lastWrites csc = do
-  artifacts <- displayFinal csc
+  let csc' = checkForSafety csc
+  artifacts <- displayFinal csc'
   writeArtifacts artifacts
   s <- getStatistics
   let t = ((realToFrac $ totalTime s)::Float)
@@ -51,16 +52,16 @@ lastWrites csc = do
   updateLog $ "terminating ALPACA after "++(showFl t)++"s\n"
   updateLog $ "***********************************************************\n\n"
   updateLog $ "Comprehensive State Characterization:\n"
-  updateLog (showSmallCsc csc)
-  covers <- coversDomain csc
+  updateLog (showSmallCsc csc')
+  covers <- coversDomain csc'
   if covers
     then do
       io $ putStrLn "! The upper bounds cover the entire domain.\n"
       updateLog "\n*** upper bounds cover the entire domain ***\n"
     else do
       updateLog "\n(upper bounds do NOT cover the entire domain)\n"
-  cqaTransformations csc
-  finalTransformations csc
+  cqaTransformations csc'
+  finalTransformations csc'
 
 finalTransformations :: Csc -> AcaComputation ()                
 finalTransformations csc = do
@@ -162,7 +163,7 @@ classifyResults ev = do
     else ReachableEvidence ev
 
 safetyDeconstructor :: PieceOfEvidence -> String
-safetyDeconstructor (LegitimateEvidence (AnalysisWitness a _ _ _ _ _) _ _) = "  "++(show (analysisTool a))
+safetyDeconstructor (LegitimateEvidence (AnalysisWitness a _ _ _ _ _ _) _ _) = "  "++(show (analysisTool a))
 safetyDeconstructor _ = assert False ""
 
 classifyEarlyResults :: EvidenceCollection -> IO ()
@@ -242,11 +243,16 @@ searchMovedToTop :: GeneralizeResult -> Bool
 searchMovedToTop Top = True
 searchMovedToTop _ = False
 
-initialCsc :: FilePath -> IO Csc
-initialCsc _ = return $ Csc { disjointPartitions=[], inputCountMap=(Map.empty), inputTypeMap=(Map.empty), spuriousSpace=[], searchFlag=Search }
-
-logFilePrefix :: Program -> FilePath -> FilePath
-logFilePrefix (Program _ _ n _ _) logPre = logPre ++ "/logs_alpaca/" ++ n
+initialCsc :: FilePath -> FilePath -> IO Csc
+initialCsc _ "" = return $ Csc { disjointPartitions=[], inputCountMap=(Map.empty), inputTypeMap=(Map.empty), spuriousSpace=[], searchFlag=Search }
+initialCsc _ cudFile = do
+  cudStr <- readFile cudFile
+  let cudLines = lines cudStr
+      iCount = cudLines !! 1
+      iType = cudLines !! 2
+      iCountMap = (read iCount) :: CountMap
+      iTypeMap = (read iType) :: TypeMap
+  return $ Csc { disjointPartitions=[], inputCountMap=iCountMap, inputTypeMap=iTypeMap, spuriousSpace=[], searchFlag=Search }
 
 writePathToSummaryFile :: FilePath -> FilePath -> String -> IO FilePath
 writePathToSummaryFile f logPath target = do
@@ -270,16 +276,16 @@ checkFileExists f = do
     else return ()
 
 runAca :: Configuration -> IO Csc
-runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPre targetFunc partBound merLen genStrat cppFlags iTimeout exclusion) = do
+runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPre targetFunc partBound merLen genStrat cppFlags iTimeout exclusion dseT mkCud chCud) = do
   checkFileExists program
   setLibraryEnvironmentVariable
   now <- getCurrentTime
-  initProgram <- initialProgram program "" "main" logPre targetFunc cppFlags
+  initProgram <- initialProgram program "" "main" logPre targetFunc cppFlags (dseChoice dseT) chCud
   end1 <- getCurrentTime
 
   let astReadTime = formatFloatN ((realToFrac $ diffUTCTime end1 now)::Float) 4
   {- update log -}
-  initCsc <- initialCsc ""
+  initCsc <- initialCsc "" chCud
   startInstrumentation <- getCurrentTime
   initialInstrumentation initProgram initCsc logPre
   endInstrumentation <- getCurrentTime
@@ -320,7 +326,15 @@ runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPr
     , partitionBound = partBound
     , mergeLength    = merLen
     , genStrategy    = genMode genStrat
+    , dseTool        = dseChoice dseT
+    , makeCud        = mkCud
+    , chewCud        = chCud
     }
+
+dseChoice :: String -> DseTool
+dseChoice "cpa" = CpaSymExec
+dseChoice "civl" = CivlSymExec
+dseChoice s = error $ "sorry, i do not recognize the --dse option '"++s++"'. choose from (cpa | civl)."
 
 setLibraryEnvironmentVariable :: IO ()
 setLibraryEnvironmentVariable = do
@@ -394,8 +408,17 @@ bareProgramName p funcName =
   let baseName = last $ splitOn "/" $ dropExtension p
   in baseName++"_reach_"++funcName
 
-initialProgram :: FilePath -> FilePath -> String -> FilePath -> String -> String -> IO Program
-initialProgram p initCsc "main" logPre targetFunc cppFlags = do
+
+wrapCudInMaybe :: String -> IO (Maybe String)
+wrapCudInMaybe "" = return Nothing
+wrapCudInMaybe cudFile = do
+  cudStr <- readFile cudFile
+  let cudLines = lines cudStr
+      assump = cudLines !! 0
+  return $ Just assump
+
+initialProgram :: FilePath -> FilePath -> String -> FilePath -> String -> String -> DseTool -> String -> IO Program
+initialProgram p initCsc "main" logPre targetFunc cppFlags dTool cud = do
   let iter = 1
   let n = bareProgramName p targetFunc
   let iterTag = "iter.1"
@@ -405,7 +428,8 @@ initialProgram p initCsc "main" logPre targetFunc cppFlags = do
   p' <- runPreprocessor p cppFlags
   pAst <- getAst p'
   removeFile p'
-  let pAst' = twoPassTransform pAst targetFunc
+  mCud <- wrapCudInMaybe cud
+  let pAst' = twoPassTransform pAst targetFunc dTool mCud
   let prog = Program {
         sourcePath=filePath
       , ast=pAst'
@@ -415,7 +439,7 @@ initialProgram p initCsc "main" logPre targetFunc cppFlags = do
       }
   return prog
 {- Construct modular ACA program -}
-initialProgram p initCsc funcName logPre targetFunc cppFlags = do
+initialProgram p initCsc funcName logPre targetFunc cppFlags dTool cud = do
   let iter = 1
   let n = last $ splitOn "/" $ dropExtension p
   let name' = funcName ++ "_aca_" ++ n;
@@ -429,7 +453,8 @@ initialProgram p initCsc funcName logPre targetFunc cppFlags = do
   let newHandle = name' ++ ".c"
   writeFile newHandle (show $ pretty pAst')
   pAst'' <- getAst newHandle
-  let pAst''' = twoPassTransform pAst'' targetFunc
+  mCud <- wrapCudInMaybe cud
+  let pAst''' = twoPassTransform pAst'' targetFunc dTool mCud
   let prog = Program {
         sourcePath=filePath
       , ast=pAst'''

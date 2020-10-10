@@ -32,6 +32,14 @@ function check_stack_version {
     }
 }
 
+function check_java_version {
+    java_version=$(java -version 2>&1 | head -n 1 | awk -F '"' '{print $2}')
+    verlt $java_version 11 && {
+	echo "Please install Java 11; this version is required by CPA's symbolic executor.";
+	exit 1;
+    }
+}
+
 function check_benchexec_version {
     benchexec_version=$(benchexec --version | awk '{print $2}')
     verlt $benchexec_version 2.7 && {
@@ -46,13 +54,15 @@ function does_package_exist {
 
 check_for_stack
 check_stack_version
-check_for "java"
+check_java_version
 check_for "python3"
 check_for_python_3_6
 check_for_python
 check_for "benchexec"
 check_benchexec_version
 check_for "z3"
+check_for "ant"
+check_for "git"
 does_package_exist "libc6-dev-i386"
 does_package_exist "python-pycparser"
 does_package_exist "libgmp-dev"
@@ -83,6 +93,27 @@ echo "Configuring CIVL with the available solvers"
 CIVL_DIR="$ANALYZERS/civl"
 CIVL_JAR="$CIVL_DIR/civl.jar"
 java -jar $CIVL_JAR config
+
+CPA_SE_DIR="$ANALYZERS/cpa_symexec"
+CPA_REPO_DIR="$ANALYZERS/cpa_symexec/cpachecker"
+CPA_DSE_CONFIG="$CPA_SE_DIR/violation-witness-validation-symexec.properties"
+if [ ! -d "$CPA_REPO_DIR" ]; then
+    echo
+    echo "Cloning CPA-checker repo"
+    cd $CPA_SE_DIR
+    git clone https://github.com/sosy-lab/cpachecker.git
+    cd $CPA_REPO_DIR
+    # the following is the specific version of CPA tested
+    git checkout a177be94f34033b02bc0f078fd6e24b210255aea
+    echo
+    echo "Building CPA"
+    ant
+    cp $CPA_DSE_CONFIG $CPA_REPO_DIR/config
+    cd $ROOT
+else
+    echo
+    echo "CPA-checker repo already exists; moving on."
+fi
 
 function unpack_and_rename_zip_if_needed {
     # first: canonical folder name (e.g., CPA_Seq)
@@ -117,9 +148,9 @@ function download_zip_if_needed {
 	    echo "you have the latest $zip_file, moving on..."
 	else
 	    echo "removing stale $zip_file"
-#	    rm -f $zip_file
+	    rm -f $zip_file
 	    echo "removing possible stale unpacked folder"
-#	    rm -rf $unpacked_name
+	    rm -rf $unpacked_name
 
 	    echo "downloading new $zip_file from $download_link"
        	    wget $download_link	    

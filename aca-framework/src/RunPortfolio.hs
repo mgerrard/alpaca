@@ -22,6 +22,7 @@ import CscTypes
 import Portfolio
 import Branch
 import CivlParsing
+import CpaParsing
 import LocalPaths
 import AcaComputation
 import LaunchBenchexec
@@ -30,25 +31,25 @@ import Reading
 type Thread = Async (Maybe AnalysisWitness)
 
 runPortfolio :: Program -> Portfolio -> Csc -> RunConfiguration -> IO EvidenceCollection
-runPortfolio prog pfolio csc (RunConfiguration InParallel d tag exitStrat bValid logPre exitFile) = do
+runPortfolio prog pfolio csc (RunConfiguration InParallel d tag exitStrat bValid logPre exitFile dTool) = do
   {- update log : track total analysis runtime -}
   threads <- launchPortfolio prog d tag logPre exitFile pfolio
-  results <- pollUntilDone threads pfolio exitStrat csc d bValid exitFile
+  results <- pollUntilDone threads pfolio dTool exitStrat csc d bValid exitFile
   mapM_ cancel threads
   return results
-runPortfolio prog pfolio csc (RunConfiguration InSequence d tag _ bValid logPre exitFile) = do
+runPortfolio prog pfolio csc (RunConfiguration InSequence d tag _ bValid logPre exitFile dTool) = do
   maybeWitnesses <- mapM (runAnalyzer prog d tag logPre exitFile) pfolio
   let witnesses = catMaybes maybeWitnesses
-  maybeEvidence <- mapM (verifyWitness csc d bValid exitFile) witnesses
+  maybeEvidence <- mapM (verifyWitness csc dTool d bValid exitFile) witnesses
   let results = catMaybes maybeEvidence
   return results
 
-verifyWitness :: Csc -> DebugMode -> Bool -> FilePath -> AnalysisWitness -> IO (Maybe PieceOfEvidence)
-verifyWitness csc debug bValid exitFile witness = do
+verifyWitness :: Csc -> DseTool -> DebugMode -> Bool -> FilePath -> AnalysisWitness -> IO (Maybe PieceOfEvidence)
+verifyWitness csc dTool debug bValid exitFile witness = do
   if isUnreachableResult witness
     then return (Just (extractUnreachableResult witness))
     else do
-      newlyClassified <- checkAnalysisWitness debug bValid exitFile witness
+      newlyClassified <- checkAnalysisWitness dTool debug bValid exitFile witness
       let newEvidence = isNewEvidence csc newlyClassified
       if newEvidence
         then return $ (Just newlyClassified)
@@ -57,15 +58,15 @@ verifyWitness csc debug bValid exitFile witness = do
 launchPortfolio :: Program -> DebugMode -> Maybe Int -> FilePath -> FilePath -> Portfolio -> IO [Thread]
 launchPortfolio prog d tag logPre ef pfolio  = mapM (async . (runAnalyzer prog d tag logPre ef)) pfolio
 
-pollUntilDone :: [Thread] -> Portfolio -> ExitStrategy -> Csc -> DebugMode -> Bool -> FilePath -> IO EvidenceCollection
-pollUntilDone threads _ strategy csc debug bValid exitFile = do
+pollUntilDone :: [Thread] -> Portfolio -> DseTool -> ExitStrategy -> Csc -> DebugMode -> Bool -> FilePath -> IO EvidenceCollection
+pollUntilDone threads _ dTool strategy csc debug bValid exitFile = do
   let finished = []
-  evidence <- pollLoop threads finished strategy csc debug bValid exitFile
+  evidence <- pollLoop threads finished dTool strategy csc debug bValid exitFile
   return evidence
 
-pollLoop :: [Thread] -> EvidenceCollection -> ExitStrategy -> Csc -> DebugMode -> Bool -> FilePath -> IO EvidenceCollection
-pollLoop [] finished _ _ _ _ _ = return finished
-pollLoop runningThreads finished exitStrat csc debug bValid ef = do
+pollLoop :: [Thread] -> EvidenceCollection -> DseTool -> ExitStrategy -> Csc -> DebugMode -> Bool -> FilePath -> IO EvidenceCollection
+pollLoop [] finished _ _ _ _ _ _ = return finished
+pollLoop runningThreads finished dTool exitStrat csc debug bValid ef = do
   maybeResults <- mapM poll runningThreads
   if any isUnreachableThreadResult maybeResults
     then do
@@ -74,16 +75,16 @@ pollLoop runningThreads finished exitStrat csc debug bValid ef = do
     else if any isJust maybeResults
       then do
         let (running', stopped) = partitionRunningAndFinished runningThreads maybeResults
-        newlyClassified <- (checkResults stopped debug bValid ef)
+        newlyClassified <- (checkResults stopped dTool debug bValid ef)
 --        let finished' = finished ++ newlyClassified
         let newEvidence = filter (isNewEvidence csc) newlyClassified
         let finished' = finished ++ newEvidence
         if ((exitStrat == Eager) && (any isNonspuriousEvidence newEvidence))
           then return finished' 
-          else pollLoop running' finished' exitStrat csc debug bValid ef
+          else pollLoop running' finished' dTool exitStrat csc debug bValid ef
       else do
         threadDelay 100000 -- poll every 0.1 seconds
-        pollLoop runningThreads finished exitStrat csc debug bValid ef
+        pollLoop runningThreads finished dTool exitStrat csc debug bValid ef
 
 partitionRunningAndFinished :: [Thread] -> [ThreadResult] -> ([Thread], [AnalysisWitness])
 partitionRunningAndFinished ts rs = 
@@ -102,11 +103,11 @@ extractAnalysisResult (Just (Left e)) = throw e
 extractAnalysisResult _ = Nothing
 
 isUnreachableThreadResult :: ThreadResult -> Bool
-isUnreachableThreadResult (Just (Right (Just (AnalysisWitness _ _ True _ _ _)))) = True
+isUnreachableThreadResult (Just (Right (Just (AnalysisWitness _ _ _ True _ _ _)))) = True
 isUnreachableThreadResult _ = False
 
 isUnreachableResult :: AnalysisWitness -> Bool
-isUnreachableResult (AnalysisWitness _ _ True _ _ _) = True
+isUnreachableResult (AnalysisWitness _ _ _ True _ _ _) = True
 isUnreachableResult _ = False
 
 extractUnreachableResult :: AnalysisWitness -> PieceOfEvidence
@@ -278,6 +279,7 @@ safeResult :: Analyzer -> Float -> AnalysisWitness
 safeResult a t = AnalysisWitness {
       analyzer = a,
       programPath = "",
+      witnessPath = "",
       isSafe=True,
       branches=[],
       analysisTime=t,
@@ -398,16 +400,6 @@ removeDirectoryRecursiveIfExists dir = do
     else do return ()
     
 parseWitness :: Analyzer -> Program -> Float -> Maybe Int -> Bool -> FilePath -> IO (Maybe AnalysisWitness)
-parseWitness a@(Analyzer CIVL _ _ _ _ _ _ _ _) p time _ _ _ = do
-  return (Just AnalysisWitness {
-             analyzer=a,
-             programPath=(sourcePath p),
-             isSafe=False,
-             branches=[],
-             analysisTime=time,
-             parsingTime=0
-             }
-         )
 parseWitness a p time mTag debug logPre = do
   let pathPrefix = deriveOutputDir p a mTag
   start <- getCurrentTime
@@ -416,9 +408,9 @@ parseWitness a p time mTag debug logPre = do
   removeArtifacts pathPrefix
   if isJust witness
     then do
-      let (Just witnessPath) = witness
+      let (Just witnessP) = witness
       let containsSource = witnessContainsSource a
-      maybeB <- getBranches containsSource witnessPath
+      maybeB <- getBranches containsSource witnessP
       if isNothing maybeB
         then return Nothing
         else do
@@ -434,6 +426,7 @@ parseWitness a p time mTag debug logPre = do
               return (Just AnalysisWitness {
                          analyzer=a',
                          programPath=(sourcePath p),
+                         witnessPath=witnessP,
                          isSafe=False,
                          branches=b',
                          analysisTime=time,
@@ -460,8 +453,38 @@ adaptiveTimeCalculation a newTime =
     then a { analysisTimeout = (round newTime) + 100 }
     else a
 
-guidedSymExe :: AnalysisWitness -> DebugMode -> Bool -> IO (Maybe CivlResult)
-guidedSymExe w d valid = do
+cpaSymExecSetup :: AnalysisWitness -> IO (FilePath, [String], FilePath)
+cpaSymExecSetup w = do
+  a <- getAnalyzerDir
+  let cpaDir = a++"cpa_symexec/cpachecker/"
+  let cpaScript = cpaDir++"scripts/cpa.sh"
+  let valConfig = "witness.validation.violation.config="++cpaDir++"config/violation-witness-validation-symexec.properties"
+  let specFile = cpaDir++"config/specification/sv-comp-reachability.spc"
+  let outputDir = (takeDirectory (witnessPath w)) ++ "/symexec_output"
+  let args = ["-witnessValidation","-setprop",valConfig,"-witness",(witnessPath w),"-spec",specFile,"-outputpath",outputDir,(programPath w)]
+  return (cpaScript, args, outputDir)
+
+guidedSymExec :: AnalysisWitness -> DseTool -> DebugMode -> Bool -> IO (Maybe SymExecResult)
+guidedSymExec w CpaSymExec d _ = do
+  (cpaScript, args, outDir) <- cpaSymExecSetup w
+  (_,stdout,stderr) <- readProcessWithExitCode cpaScript args ""
+  
+  let debug = ((d == Full) || (d == Direct))
+  if debug
+    then do
+      let fullCmd = [cpaScript]++args
+      putStrLn $ "SYMEXEC COMMAND:"++(unwords fullCmd)++"\n"
+      putStrLn $ "STDOUT:"++stdout
+      putStrLn $ "STDERR:"++stderr
+    else return ()
+
+  pc <- search "*.symbolic-trace.txt" outDir
+  if null pc
+    then return Nothing
+    else do
+      let pcFile = head pc
+      return $ Just $ CpaResult pcFile
+guidedSymExec w CivlSymExec d valid = do
   let progPath = programPath w
   directPath <- makeDirectiveFile w
   r <- runDirectedCivl (progPath, directPath) d valid
@@ -568,11 +591,11 @@ makeDirectiveFile w = do
 -- CPA writes branch directive for __VERIFIER_assume(), which
 -- messes up the directives in CIVL; removing them here is hackish
 removeUnnecessaryBranches :: AnalysisWitness -> IO AnalysisWitness
-removeUnnecessaryBranches (AnalysisWitness a pp s bs t pt) = do
+removeUnnecessaryBranches (AnalysisWitness a pp wp s bs t pt) = do
   let badBranches = filter isIllegitimateBranch bs
   let badLines = map line badBranches
   let bs' = filter (\b -> ((line b) `notElem` badLines)) bs
-  return (AnalysisWitness a pp s bs' t pt)
+  return (AnalysisWitness a pp wp s bs' t pt)
 
 isIllegitimateBranch :: Branch -> Bool
 isIllegitimateBranch (Branch _ _ Nothing) = False
@@ -590,17 +613,39 @@ boolToIntStr :: Bool -> String
 boolToIntStr True = "1"
 boolToIntStr False = "0"
 
-data CivlResult = CivlResult {
-  resultPath :: FilePath,
-  resultString :: String
+data SymExecResult = CivlResult {
+    resultPath :: FilePath,
+    resultString :: String }
+  |
+  CpaResult {
+    pathToPc :: FilePath  
   } deriving (Show)
-
-confirmedFailure :: CivlResult -> Bool
-confirmedFailure r =
+  
+confirmedFailure :: SymExecResult -> Bool
+confirmedFailure r@(CivlResult _ _) =
   "__VERIFIER_error at svcomp.cvl" `isInfixOf` (resultString r)
+confirmedFailure (CpaResult _) = error "confirmedFailure not implemented for CpaResult"
 
-failureSubspace :: CivlResult -> DebugMode -> IO (Maybe Subspace)
-failureSubspace r d = do
+filterScript :: IO FilePath
+filterScript = do
+  a <- analyzerDir
+  return $ a++"/cpa_symexec/filter_sym_lines.sh"
+
+failureSubspace :: SymExecResult -> DebugMode -> IO (Maybe Subspace)
+failureSubspace (CpaResult symFile) d = do
+  let debug = ((d == Full) || (d == Direct))  
+  fScript <- filterScript
+  (_,ls,_) <- readProcessWithExitCode fScript [symFile] ""
+  let validLines = filter isSymbolicExpr (lines ls)
+  let validLines' = map init validLines -- drop semicolon
+  mSubspace <- extractCpaSubspace validLines'
+  if (isJust mSubspace)
+    then do
+      let (Just subspace) = mSubspace
+      if debug then do putStrLn (show subspace) else do return ()
+      return (Just subspace)
+    else return Nothing
+failureSubspace r@(CivlResult _ _) d = do
   let debug = ((d == Full) || (d == Slice))
   s <- runSliceAnalysis (resultPath r) d False
   if debug then do putStrLn s else do return ()
@@ -612,8 +657,9 @@ failureSubspace r d = do
       return (Just subspace)
     else return Nothing
 
-validSubspace :: CivlResult -> DebugMode -> IO (Maybe Subspace)
-validSubspace r d = do
+validSubspace :: SymExecResult -> DebugMode -> IO (Maybe Subspace)
+validSubspace (CpaResult _) _ = error "CpaSymExec is not currently able to block valid subspaces; try CIVL."
+validSubspace r@(CivlResult _ _) d = do
   let debug = ((d == Full) || (d == Slice))
   s <- runSliceAnalysis (resultPath r) d True
   if debug then do putStrLn s else do return ()
@@ -642,12 +688,11 @@ makeSubspace (PreSubspace rc ac cMap tMap) = do
   let as' = map Conjunct as
   return $ Subspace cs' as' cMap tMap
 
-type SymVar = String
 type LineNumber = String
 
-checkResults :: [AnalysisWitness] -> DebugMode -> Bool -> FilePath -> IO EvidenceCollection
-checkResults rs d blockV exitFile = do
-  cs <- mapConcurrently (checkAnalysisWitness d blockV exitFile) rs
+checkResults :: [AnalysisWitness] -> DseTool -> DebugMode -> Bool -> FilePath -> IO EvidenceCollection
+checkResults rs dTool d blockV exitFile = do
+  cs <- mapConcurrently (checkAnalysisWitness dTool d blockV exitFile) rs
   let debug = (d == Full)
   if debug then do mapM_ (putStrLn . show) cs else do return ()
   let cs' = filter (not . isEmptyEvidence) cs
@@ -663,18 +708,29 @@ programWithinToolDir p a =
       progName = last $ splitOn "/" p
       programInDir = prefix ++ "/" ++ (show a) ++ "/" ++ progName 
   in programInDir ++ "." ++ (show a) ++ ".c"
-      
-checkAnalysisWitness :: DebugMode -> Bool -> FilePath -> AnalysisWitness -> IO PieceOfEvidence
-checkAnalysisWitness _ _ _ w@(AnalysisWitness _ _ True _ _ _) = return (LegitimateEvidence w emptySubspace 0)
-checkAnalysisWitness d _ _ (AnalysisWitness (Analyzer CIVL _ _ _ _ _ _ _ _) progPath _ _ _ _) = do
-  s <- runSliceAnalysis progPath d False
-  mSubspace <- extractSubspace s
-  if (isJust mSubspace)
+
+checkAnalysisWitness :: DseTool -> DebugMode -> Bool -> FilePath -> AnalysisWitness -> IO PieceOfEvidence
+checkAnalysisWitness _ _ _ _ w@(AnalysisWitness _ _ _ True _ _ _) = return (LegitimateEvidence w emptySubspace 0)
+checkAnalysisWitness CpaSymExec d _ _ witness@(AnalysisWitness tool progPath _ _ _ _ _) = do
+  let uniquePath = programWithinToolDir progPath tool
+  copyFile progPath uniquePath
+  let witness' = witness
+  result <- (guidedSymExec witness' CpaSymExec d False)
+  if isJust result
     then do
-      let (Just subspace) = mSubspace
-      return $ (LegitimateEvidence civlWitness subspace 0)
-    else return (EmptyEvidence emptyWitness)
-checkAnalysisWitness d blockV _ witness@(AnalysisWitness tool progPath _ _ _ _) = do
+      let Just symExecResult = result
+      start <- getCurrentTime        
+      mFailSpace <- failureSubspace symExecResult d
+      end <- getCurrentTime
+      let elapsedTime = (realToFrac :: (Real a) => a -> Float) $ diffUTCTime end start
+          
+      if (isJust mFailSpace)
+        then do
+          let (Just failSpace) = mFailSpace
+          return $ (LegitimateEvidence witness failSpace elapsedTime)
+        else return (EmptyEvidence witness')
+    else return (EmptyEvidence witness')
+checkAnalysisWitness CivlSymExec d blockV _ witness@(AnalysisWitness tool progPath _ _ _ _ _) = do
   -- a result contains:
   --  a file handle (passed by the witness) and
   --  the output from CIVL's run
@@ -684,13 +740,14 @@ checkAnalysisWitness d blockV _ witness@(AnalysisWitness tool progPath _ _ _ _) 
   let uniquePath = programWithinToolDir progPath tool
   copyFile progPath uniquePath
   let witness' = witness { programPath = uniquePath }
-  result <- (guidedSymExe witness' d False)
+  result <- (guidedSymExec witness' CivlSymExec d False)
   if isJust result
-    then let Just civlResult = result in
-      if confirmedFailure civlResult
+    then let Just symExecResult = result
+    in
+      if confirmedFailure symExecResult
         then do
           start <- getCurrentTime        
-          mFailSpace <- failureSubspace civlResult d
+          mFailSpace <- failureSubspace symExecResult d
           end <- getCurrentTime
           let elapsedTime = (realToFrac :: (Real a) => a -> Float) $ diffUTCTime end start
           
@@ -703,7 +760,7 @@ checkAnalysisWitness d blockV _ witness@(AnalysisWitness tool progPath _ _ _ _) 
           if blockV
             then do
               start <- getCurrentTime                    
-              maybeValidSpace <- (guidedSymExe witness' d True)
+              maybeValidSpace <- (guidedSymExec witness' CivlSymExec d True)
               end <- getCurrentTime
               let elapsedTime = (realToFrac :: (Real a) => a -> Float) $ diffUTCTime end start
               
