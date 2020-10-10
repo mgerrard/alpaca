@@ -22,7 +22,7 @@ opts = info ( versionOption <*> configuration <**> helper )
   <> header   "ALPACA -- A Large Portfolio-based Alternating Conditional Analysis" )
 
 versionOption :: Parser (a -> a)
-versionOption = infoOption "ALPACA 1.0" (short 'v' <> long "version" <> help "show version")
+versionOption = infoOption "ALPACA 1.1" (short 'v' <> long "version" <> help "show version")
 
 configuration :: Parser Configuration
 configuration = Configuration
