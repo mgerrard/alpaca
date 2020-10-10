@@ -106,6 +106,7 @@ by any browser, such as Firefox.
 + `gcc-multilib `
 + `g++-multilib`
 + `libgmp-dev`
++ `libtinfo-dev`
 
 (You can install the above packages by running `sudo apt install <package>`.)
 
