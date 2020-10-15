@@ -243,14 +243,27 @@ runBenchexec cFile a timeout oDir mTag debug logPre = do
   let aDir = analysisDir a
   let pre = absolutePrefix logPre currDir
   let outDir = absoluteOutDir pre oDir
-  let fullFile = absoluteFullFile pre cFile
-  let xmlString = constructXML a fullFile baseDir
+  let progPath = absoluteFullFile pre cFile
+  let uniquePath = programWithinToolDir progPath a
+  copyFile progPath uniquePath
+  let fName = takeFileName cFile
+  let t = show $ analysisTool a
+  let containerFile = "/home/alpaca_logs/"++fName++"."++t++".c"
+  let xmlString = constructXML a containerFile baseDir
   let xmlHandle = makeXmlHandle pre oDir a mTag
   writeFile xmlHandle xmlString
-  script <- benchexecScript
-  let args = [script, cFile, xmlHandle, outDir, aDir, (show timeout)]
-  if debug then putStrLn ("Call to benchexec:\n\n "++"bash "++(show args)) else return ()
-  readProcessWithExitCode "bash" args ""
+--  _ <- error "stopping for now within runBenchexec..."
+  let containerName = "test"
+  let args = [(show timeout),
+              "docker",
+              "run",
+              "--privileged",
+              "-v",(outDir++":"++"/home/alpaca_logs"),
+              "-v","/sys/fs/cgroup:/sys/fs/cgroup:rw",
+              containerName]
+-- docker run --privileged -it -v /home/mitch/work/docker_test:/home/alpaca_logs -v /sys/fs/cgroup:/sys/fs/cgroup:rw test
+  if debug then putStrLn ("Call to docker-benchexec:\n\n "++"timeout "++(show args)) else return ()
+  readProcessWithExitCode "timeout" args ""
 
 absolutePrefix :: FilePath -> FilePath -> FilePath
 absolutePrefix "." currDir = currDir
@@ -712,8 +725,6 @@ programWithinToolDir p a =
 checkAnalysisWitness :: DseTool -> DebugMode -> Bool -> FilePath -> AnalysisWitness -> IO PieceOfEvidence
 checkAnalysisWitness _ _ _ _ w@(AnalysisWitness _ _ _ True _ _ _) = return (LegitimateEvidence w emptySubspace 0)
 checkAnalysisWitness CpaSymExec d _ _ witness@(AnalysisWitness tool progPath _ _ _ _ _) = do
-  let uniquePath = programWithinToolDir progPath tool
-  copyFile progPath uniquePath
   let witness' = witness
   result <- (guidedSymExec witness' CpaSymExec d False)
   if isJust result
@@ -734,11 +745,7 @@ checkAnalysisWitness CivlSymExec d blockV _ witness@(AnalysisWitness tool progPa
   -- a result contains:
   --  a file handle (passed by the witness) and
   --  the output from CIVL's run
-  {- Need to copy original C file and tag it with Analyzer providing
-     the witness; otherwise there will be a race condition writing to
-     the trace file -}
-  let uniquePath = programWithinToolDir progPath tool
-  copyFile progPath uniquePath
+  let uniquePath = programWithinToolDir progPath tool  
   let witness' = witness { programPath = uniquePath }
   result <- (guidedSymExec witness' CivlSymExec d False)
   if isJust result

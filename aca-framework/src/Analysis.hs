@@ -7,6 +7,7 @@ import qualified Data.Map.Strict as Map
 import Language.C.Syntax
 import Language.C
 import System.FilePath.Posix
+import System.Posix.User
 import System.Directory
 import System.Process
 import System.Environment (getEnv, setEnv)
@@ -277,6 +278,10 @@ checkFileExists f = do
 
 runAca :: Configuration -> IO Csc
 runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPre targetFunc partBound merLen genStrat cppFlags iTimeout exclusion dseT mkCud chCud) = do
+  uId <- getRealUserID
+  if uId /= 0
+    then error "user must be root to run docker"
+    else return ()
   checkFileExists program
   setLibraryEnvironmentVariable
   now <- getCurrentTime
@@ -338,8 +343,9 @@ dseChoice s = error $ "sorry, i do not recognize the --dse option '"++s++"'. cho
 
 setLibraryEnvironmentVariable :: IO ()
 setLibraryEnvironmentVariable = do
-  homeDir <- getEnv "HOME"
-  let acaConfig = homeDir ++ "/.aca.config"
+  putStrLn "remember to change hard-coded home on doppios"
+  let hardCodedHome = "/home/mitch"
+  let acaConfig = hardCodedHome ++ "/.aca.config"
   configFileExists <- doesFileExist acaConfig
   if configFileExists
     then do
@@ -348,7 +354,7 @@ setLibraryEnvironmentVariable = do
       setEnv "ACA_LIB" path'
       return ()
     else do
-      putStrLn "Could not find ~/.aca.config. Aborting"
+      putStrLn $ "Could not find "++hardCodedHome++"/.aca.config. Aborting"
       assert False (return ())
 
 debugMode :: String -> DebugMode

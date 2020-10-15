@@ -37,9 +37,9 @@ xmlFooter :: String
 xmlFooter = "</benchmark>"
 
 taskToRun :: FilePath -> FilePath -> String
-taskToRun file aDir =
+taskToRun file _ =
   let fileName = last $ splitOn "/" file
-      propertyFile = aDir ++ "/PropertyUnreachCall.prp"
+      propertyFile = "/PropertyUnreachCall.prp"
   in
     "<tasks name=\""++fileName++"\">\n\
     \<include>"++file++"</include>\n\
