@@ -724,8 +724,11 @@ programWithinToolDir p a =
 
 checkAnalysisWitness :: DseTool -> DebugMode -> Bool -> FilePath -> AnalysisWitness -> IO PieceOfEvidence
 checkAnalysisWitness _ _ _ _ w@(AnalysisWitness _ _ _ True _ _ _) = return (LegitimateEvidence w emptySubspace 0)
-checkAnalysisWitness CpaSymExec d _ _ witness@(AnalysisWitness tool progPath _ _ _ _ _) = do
+checkAnalysisWitness CpaSymExec d _ _ witness@(AnalysisWitness tool progPath wPath _ _ _ _) = do
   let witness' = witness
+  -- the following hack is to remove docker absolute paths written by Ultimate* tools
+  -- that cause CPA-SymExec to fail when replaying their witness
+  callCommand $ "sed -i '/<data key=\"originfile\">/d' "++wPath
   result <- (guidedSymExec witness' CpaSymExec d False)
   if isJust result
     then do
