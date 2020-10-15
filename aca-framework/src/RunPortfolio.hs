@@ -33,12 +33,12 @@ type Thread = Async (Maybe AnalysisWitness)
 runPortfolio :: Program -> Portfolio -> Csc -> RunConfiguration -> IO EvidenceCollection
 runPortfolio prog pfolio csc (RunConfiguration InParallel d tag exitStrat bValid logPre exitFile dTool) = do
   {- update log : track total analysis runtime -}
-  threads <- launchPortfolio prog d tag logPre exitFile pfolio
+  threads <- launchPortfolio prog d tag logPre exitFile dTool pfolio
   results <- pollUntilDone threads pfolio dTool exitStrat csc d bValid exitFile
   mapM_ cancel threads
   return results
 runPortfolio prog pfolio csc (RunConfiguration InSequence d tag _ bValid logPre exitFile dTool) = do
-  maybeWitnesses <- mapM (runAnalyzer prog d tag logPre exitFile) pfolio
+  maybeWitnesses <- mapM (runAnalyzer prog d tag logPre exitFile dTool) pfolio
   let witnesses = catMaybes maybeWitnesses
   maybeEvidence <- mapM (verifyWitness csc dTool d bValid exitFile) witnesses
   let results = catMaybes maybeEvidence
@@ -55,8 +55,8 @@ verifyWitness csc dTool debug bValid exitFile witness = do
         then return $ (Just newlyClassified)
         else return $ Nothing
         
-launchPortfolio :: Program -> DebugMode -> Maybe Int -> FilePath -> FilePath -> Portfolio -> IO [Thread]
-launchPortfolio prog d tag logPre ef pfolio  = mapM (async . (runAnalyzer prog d tag logPre ef)) pfolio
+launchPortfolio :: Program -> DebugMode -> Maybe Int -> FilePath -> FilePath -> DseTool -> Portfolio -> IO [Thread]
+launchPortfolio prog d tag logPre ef dTool pfolio  = mapM (async . (runAnalyzer prog d tag logPre ef dTool)) pfolio
 
 pollUntilDone :: [Thread] -> Portfolio -> DseTool -> ExitStrategy -> Csc -> DebugMode -> Bool -> FilePath -> IO EvidenceCollection
 pollUntilDone threads _ dTool strategy csc debug bValid exitFile = do
@@ -137,24 +137,24 @@ launchSeahorn (Program uniquePath _ _ _ _) t = do
   (_, stdOut, _) <- readProcessWithExitCode "timeout" args ""
   return stdOut
 
-runAnalyzer :: Program -> DebugMode -> Maybe Int -> FilePath -> FilePath -> Analyzer -> IO (Maybe AnalysisWitness)
-runAnalyzer p _ mTag logPre _ a@(Analyzer Seahorn _ _ _ _ _ _ _ _) = do
+runAnalyzer :: Program -> DebugMode -> Maybe Int -> FilePath -> FilePath -> DseTool -> Analyzer -> IO (Maybe AnalysisWitness)
+runAnalyzer p _ mTag logPre _ dTool a@(Analyzer Seahorn _ _ _ _ _ _ _ _) = do
   start <- getCurrentTime
   let t = deriveTimeout a mTag p
   rawResult <- launchSeahorn p t
   end <- getCurrentTime
   let elapsedTime = (realToFrac :: (Real a) => a -> Float) $ diffUTCTime end start
-  result <- parseResult rawResult a p elapsedTime mTag True logPre
+  result <- parseResult rawResult a p elapsedTime mTag True logPre dTool
   return result
-runAnalyzer p _ mTag logPre _ a@(Analyzer CIVL _ _ _ _ _ _ _ _) = do
+runAnalyzer p _ mTag logPre _ dTool a@(Analyzer CIVL _ _ _ _ _ _ _ _) = do
   start <- getCurrentTime
   let t = deriveTimeout a mTag p
   rawResult <- symbolicExecution p t
   end <- getCurrentTime
   let elapsedTime = (realToFrac :: (Real a) => a -> Float) $ diffUTCTime end start
-  result <- parseResult rawResult a p elapsedTime mTag True logPre
+  result <- parseResult rawResult a p elapsedTime mTag True logPre dTool
   return result
-runAnalyzer p d mTag logPre _ a = do
+runAnalyzer p d mTag logPre _ dTool a = do
   let t = deriveTimeout a mTag p
   start <- getCurrentTime
   let debug = ((d == Full) || (d == Analyzers))
@@ -169,7 +169,7 @@ runAnalyzer p d mTag logPre _ a = do
       putStrLn $ "EXIT CODE:\n" ++ (show exitCode)
     else do return ()
 
-  result <- parseResult rawResult a p elapsedTime mTag debug logPre
+  result <- parseResult rawResult a p elapsedTime mTag debug logPre dTool
   if debug then do putStrLn $ "\n***\nAnalysis result for " ++ (show a) ++ ": " ++ (show result) ++ "\n***\n" else do return ()
   return result
 
@@ -252,7 +252,6 @@ runBenchexec cFile a timeout oDir mTag debug logPre = do
   let xmlString = constructXML a containerFile baseDir
   let xmlHandle = makeXmlHandle pre oDir a mTag
   writeFile xmlHandle xmlString
---  _ <- error "stopping for now within runBenchexec..."
   let containerName = "portfolio"
   let args = [(show timeout),
               "docker",
@@ -261,7 +260,6 @@ runBenchexec cFile a timeout oDir mTag debug logPre = do
               "-v",(outDir++":"++"/home/alpaca_logs"),
               "-v","/sys/fs/cgroup:/sys/fs/cgroup:rw",
               containerName]
--- docker run --privileged -it -v /home/mitch/work/docker_test:/home/alpaca_logs -v /sys/fs/cgroup:/sys/fs/cgroup:rw test
   if debug then putStrLn ("Call to docker-benchexec:\n\n "++"timeout "++(show args)) else return ()
   readProcessWithExitCode "timeout" args ""
 
@@ -298,23 +296,23 @@ safeResult a t = AnalysisWitness {
       analysisTime=t,
       parsingTime=0}
                
-parseResult :: String -> Analyzer -> Program -> Float -> Maybe Int -> Bool -> FilePath -> IO (Maybe AnalysisWitness)
-parseResult stdout a@(Analyzer Seahorn _ _ _ _ _ _ _ _) _ time _ _ _ = do
+parseResult :: String -> Analyzer -> Program -> Float -> Maybe Int -> Bool -> FilePath -> DseTool -> IO (Maybe AnalysisWitness)
+parseResult stdout a@(Analyzer Seahorn _ _ _ _ _ _ _ _) _ time _ _ _ _ = do
   let lastLine = last $ lines stdout
   if "unsat" `isInfixOf` lastLine
     then return $ (Just (safeResult a time))
     else return Nothing
-parseResult res a@(Analyzer CIVL _ _ _ _ _ _ _ _) p time mTag debug logPre = do
+parseResult res a@(Analyzer CIVL _ _ _ _ _ _ _ _) p time mTag debug logPre dTool = do
   let summary = getCivlResultSummary res
   case summary of
-    FalseResult -> parseWitness a p time mTag debug logPre
+    FalseResult -> parseWitness a p time mTag debug logPre dTool
     _ -> do return Nothing
-parseResult res a p time mTag debug logPre = do
+parseResult res a p time mTag debug logPre dTool = do
   let path = deriveOutputDir p a mTag
   let summary = getResultSummary res
   case summary of
     TrueResult -> do removeArtifacts path; return $ validateResult a time
-    FalseResult -> parseWitness a p time mTag debug logPre
+    FalseResult -> parseWitness a p time mTag debug logPre dTool
     _ -> do removeArtifacts path; return Nothing
 
 getCivlResultSummary :: String -> AnalysisResult
@@ -354,10 +352,12 @@ tryToGatherWitness dir = do
           return (Just newHandle)
         else do return Nothing
 
-normalizeWitness :: Maybe FilePath -> Program -> Analyzer -> Maybe Int -> Bool -> FilePath -> IO (Maybe FilePath)
-normalizeWitness Nothing _ _ _ _ _ = return Nothing
-normalizeWitness f _ (Analyzer _ _ _ _ _ _ BranchDirectives _ _) _ _ _ = return f
-normalizeWitness (Just w) p a mTag debug logPre = do
+normalizeWitness :: Maybe FilePath -> Program -> Analyzer -> Maybe Int -> Bool -> FilePath -> DseTool -> IO (Maybe FilePath)
+normalizeWitness Nothing _ _ _ _ _ _ = return Nothing
+normalizeWitness f _ (Analyzer _ _ _ _ _ _ BranchDirectives _ _) _ _ _ _ = return f
+normalizeWitness f _ _ _ _ _ CpaSymExec = return f
+normalizeWitness (Just w) p a mTag debug logPre _ = do
+  _ <- error "witness validation within docker container not set up for doppios yet"
   currDir <- getCurrentDirectory
   let pre = absolutePrefix logPre currDir
   let witness = pre ++ "/" ++ w
@@ -412,12 +412,35 @@ removeDirectoryRecursiveIfExists dir = do
     then do removeDirectoryRecursive dir
     else do return ()
     
-parseWitness :: Analyzer -> Program -> Float -> Maybe Int -> Bool -> FilePath -> IO (Maybe AnalysisWitness)
-parseWitness a p time mTag debug logPre = do
+parseWitness :: Analyzer -> Program -> Float -> Maybe Int -> Bool -> FilePath -> DseTool -> IO (Maybe AnalysisWitness)
+parseWitness a p time mTag debug logPre CpaSymExec = do
   let pathPrefix = deriveOutputDir p a mTag
   start <- getCurrentTime
   w <- tryToGatherWitness pathPrefix
-  witness <- normalizeWitness w p a mTag debug logPre
+  witness <- normalizeWitness w p a mTag debug logPre CpaSymExec
+  removeArtifacts pathPrefix
+  if isJust witness
+    then do
+      let (Just witnessP) = witness
+      let a' = adaptiveTimeCalculation a time
+      end <- getCurrentTime
+      let pTime = (realToFrac :: (Real a) => a -> Float) $ diffUTCTime end start
+         
+      return (Just AnalysisWitness {
+                 analyzer=a',
+                 programPath=(sourcePath p),
+                 witnessPath=witnessP,
+                 isSafe=False,
+                 branches=[],
+                 analysisTime=time,
+                 parsingTime=pTime}
+                 )
+    else return Nothing
+parseWitness a p time mTag debug logPre dTool = do
+  let pathPrefix = deriveOutputDir p a mTag
+  start <- getCurrentTime
+  w <- tryToGatherWitness pathPrefix
+  witness <- normalizeWitness w p a mTag debug logPre dTool
   removeArtifacts pathPrefix
   if isJust witness
     then do
