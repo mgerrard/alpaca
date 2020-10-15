@@ -343,8 +343,7 @@ dseChoice s = error $ "sorry, i do not recognize the --dse option '"++s++"'. cho
 
 setLibraryEnvironmentVariable :: IO ()
 setLibraryEnvironmentVariable = do
-  putStrLn "remember to change hard-coded home on doppios"
-  let hardCodedHome = "/home/mitch"
+  let hardCodedHome = "/u/mjg6v"
   let acaConfig = hardCodedHome ++ "/.aca.config"
   configFileExists <- doesFileExist acaConfig
   if configFileExists

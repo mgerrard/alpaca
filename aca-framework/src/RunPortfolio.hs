@@ -253,7 +253,7 @@ runBenchexec cFile a timeout oDir mTag debug logPre = do
   let xmlHandle = makeXmlHandle pre oDir a mTag
   writeFile xmlHandle xmlString
 --  _ <- error "stopping for now within runBenchexec..."
-  let containerName = "test"
+  let containerName = "portfolio"
   let args = [(show timeout),
               "docker",
               "run",
