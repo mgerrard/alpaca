@@ -20,6 +20,8 @@ RUN apt update && apt install -y libgmp-dev
 RUN apt update && apt install -y zip
 
 RUN /download_tools.sh
-COPY ./run_benchexec.sh /
 RUN apt update && apt install -y openjdk-8-jre
+RUN mkdir /home/benchexec
+RUN apt update && apt install -y perl
+COPY ./run_benchexec.sh /
 ENTRYPOINT ["/run_benchexec.sh"]

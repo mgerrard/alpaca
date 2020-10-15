@@ -11,7 +11,7 @@ cd $TOOL
 # 4. run benchexec from the $XML_FILE
 benchexec --full-access-dir / $XML_FILE
 # 5. if witness exists, move it to the results directory
-WITNESS=`find . -name "*.graphml"`
-if [ -n "$WITNESS" ]; then mv $WITNESS results; fi
+WITNESS=`find . -name "*witness.graphml"`
+if [ -n "$WITNESS" ]; then cp --no-preserve=mode $WITNESS results; fi
 # 6. move the results directory to the mounted directory
-mv results $MOUNTED_DIR
+cp --no-preserve=mode -r results $MOUNTED_DIR
