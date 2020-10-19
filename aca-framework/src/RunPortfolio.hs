@@ -126,24 +126,45 @@ updatePortfolio p witnesses =
       pWithoutWitness = p \\ pWithWitness
   in pWithWitness ++ pWithoutWitness
 
-getSeahornBin :: IO String
-getSeahornBin = return "/home/mitch/work/seahorn/build/run/bin/sea"
+launchSeahorn :: FilePath -> Analyzer -> Int -> FilePath -> Maybe Int -> FilePath -> IO String
+launchSeahorn cFile a t oDir _ logPre = do
+  currDir <- getCurrentDirectory
+  baseDir <- getAnalyzerDir
+  let aDir = analysisDir a
+  let pre = absolutePrefix logPre currDir
+  let outDir = absoluteOutDir pre oDir
+  let progPath = absoluteFullFile pre cFile
+  let uniquePath = programWithinToolDir progPath a
+  copyFile progPath uniquePath
 
-launchSeahorn :: Program -> Int -> IO String
-launchSeahorn (Program uniquePath _ _ _ _) t = do
-  seahornBin <- getSeahornBin
-  program' <- makeAbsolute uniquePath
-  let args = [(show t), seahornBin, "pf", program']
+  let mountStr = outDir++":/host"
+  let args = [(show t), 
+              "docker", 
+              "run",
+              "-v",
+              mountStr,
+              "seahorn/seahorn"]
   (_, stdOut, _) <- readProcessWithExitCode "timeout" args ""
   return stdOut
 
 runAnalyzer :: Program -> DebugMode -> Maybe Int -> FilePath -> FilePath -> DseTool -> Analyzer -> IO (Maybe AnalysisWitness)
-runAnalyzer p _ mTag logPre _ dTool a@(Analyzer Seahorn _ _ _ _ _ _ _ _) = do
-  start <- getCurrentTime
+runAnalyzer p d mTag logPre _ dTool a@(Analyzer Seahorn _ _ _ _ _ _ _ _) = do
+  let outputDir = deriveOutputDir p a mTag
+  createDirectoryIfMissing True outputDir
+  let cFile = sourcePath p
   let t = deriveTimeout a mTag p
-  rawResult <- launchSeahorn p t
+
+  start <- getCurrentTime
+  let oDir = deriveOutputDir p a mTag
+  rawResult <- launchSeahorn cFile a t outputDir mTag logPre
   end <- getCurrentTime
   let elapsedTime = (realToFrac :: (Real a) => a -> Float) $ diffUTCTime end start
+  let debug = ((d == Full) || (d == Analyzers))
+
+  if debug
+    then do putStrLn rawResult
+    else do return ()
+
   result <- parseResult rawResult a p elapsedTime mTag True logPre dTool
   return result
 runAnalyzer p _ mTag logPre _ dTool a@(Analyzer CIVL _ _ _ _ _ _ _ _) = do
