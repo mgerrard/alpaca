@@ -121,7 +121,7 @@ configuration = Configuration
       (  long "dse"
       <> showDefault
       <> metavar "TOOL"
-      <> value "cpa"
+      <> value "civl"
       <> help "who runs directed sym-exec to collect condition (civl | cpa)")
   <*> switch
       (  long "make-cud"
@@ -132,3 +132,6 @@ configuration = Configuration
       <> metavar "CUD_FILE"
       <> value ""
       <> help "Pass in .cud file to see if ALPACA can chew on a subspace." )
+  <*> switch
+      (  long "docker"
+      <> help "Run portfolio using docker; requires sudo privileges" )

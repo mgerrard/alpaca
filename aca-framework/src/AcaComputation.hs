@@ -35,7 +35,8 @@ data AcaState = AcaState {
   genStrategy    :: GenStrategy,
   dseTool        :: DseTool,
   makeCud        :: Bool,
-  chewCud        :: String
+  chewCud        :: String,
+  dockerPort     :: Bool
   } deriving (Show)
 
 data Program = Program {

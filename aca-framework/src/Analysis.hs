@@ -276,12 +276,17 @@ checkFileExists f = do
     then error $ "oops, i can't find '"++f++"'"
     else return ()
 
-runAca :: Configuration -> IO Csc
-runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPre targetFunc partBound merLen genStrat cppFlags iTimeout exclusion dseT mkCud chCud) = do
+checkDockerPermissions :: Bool -> IO ()
+checkDockerPermissions False = return ()
+checkDockerPermissions True = do
   uId <- getRealUserID
   if uId /= 0
     then error "user must be root to run docker"
     else return ()
+
+runAca :: Configuration -> IO Csc
+runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPre targetFunc partBound merLen genStrat cppFlags iTimeout exclusion dseT mkCud chCud dockerFlag) = do
+  checkDockerPermissions dockerFlag
   checkFileExists program
   setLibraryEnvironmentVariable
   now <- getCurrentTime
@@ -334,6 +339,7 @@ runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPr
     , dseTool        = dseChoice dseT
     , makeCud        = mkCud
     , chewCud        = chCud
+    , dockerPort     = dockerFlag
     }
 
 dseChoice :: String -> DseTool
@@ -343,8 +349,8 @@ dseChoice s = error $ "sorry, i do not recognize the --dse option '"++s++"'. cho
 
 setLibraryEnvironmentVariable :: IO ()
 setLibraryEnvironmentVariable = do
-  let hardCodedHome = "/u/mjg6v"
-  let acaConfig = hardCodedHome ++ "/.aca.config"
+  homeDir <- getEnv "HOME"
+  let acaConfig = homeDir ++ "/.aca.config"
   configFileExists <- doesFileExist acaConfig
   if configFileExists
     then do
@@ -353,7 +359,9 @@ setLibraryEnvironmentVariable = do
       setEnv "ACA_LIB" path'
       return ()
     else do
-      putStrLn $ "Could not find "++hardCodedHome++"/.aca.config. Aborting"
+      putStrLn $ "Could not find "++acaConfig++". Aborting"
+      putStrLn $ "If running in --docker mode, preserve HOME by running:"
+      putStrLn $ "  sudo --preserve-env=HOME alpaca foo.c"
       assert False (return ())
 
 debugMode :: String -> DebugMode

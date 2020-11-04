@@ -20,6 +20,7 @@ data Configuration = Configuration
   , dseParam :: String
   , makeCudParam :: Bool
   , chewCudParam :: String
+  , dockerParam :: Bool
   } deriving (Show)
 
 data CountConfiguration = CountConfiguration { cscFileToCount :: String }
