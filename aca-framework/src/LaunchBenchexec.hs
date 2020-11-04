@@ -36,16 +36,20 @@ makeOptions tool = concat $ map makeOption (analysisOptions tool)
 xmlFooter :: String
 xmlFooter = "</benchmark>"
 
-taskToRun :: FilePath -> FilePath -> String
-taskToRun file _ =
+taskToRun :: FilePath -> FilePath -> Bool -> String
+taskToRun file aDir dock =
   let fileName = last $ splitOn "/" file
-      propertyFile = "/PropertyUnreachCall.prp"
+      propertyFile = propFile aDir dock
   in
     "<tasks name=\""++fileName++"\">\n\
     \<include>"++file++"</include>\n\
     \<propertyfile>"++propertyFile++"</propertyfile>\n\
     \</tasks>\n"
 
-constructXML :: Analyzer -> FilePath -> FilePath -> String
-constructXML a f d = (xmlHeader a) ++ (makeOptions a) ++ (taskToRun f d) ++ xmlFooter
+propFile :: FilePath -> Bool -> String
+propFile aDir False = aDir ++ "/PropertyUnreachCall.prp"
+propFile _ True = "/PropertyUnreachCall.prp"
+
+constructXML :: Analyzer -> FilePath -> FilePath -> Bool -> String
+constructXML a f d dock = (xmlHeader a) ++ (makeOptions a) ++ (taskToRun f d dock) ++ xmlFooter
 

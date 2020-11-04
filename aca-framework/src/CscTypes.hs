@@ -171,7 +171,8 @@ data RunConfiguration = RunConfiguration {
   runBlockValid :: Bool,
   runLogPrefix :: String,
   runExitFile :: FilePath,
-  runDseTool :: DseTool
+  runDseTool :: DseTool,
+  runDocker :: Bool
   }
 
 data DebugMode =

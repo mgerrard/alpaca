@@ -356,7 +356,13 @@ setupRunConfiguration tag = do
   debugMode <- getDebugMode; exitStrat <- getExitStrategy;
   bValid <- shouldBlockValid; parallelism <- getParallelism
   logPre <- getLogPrefix; exitF <- getExitSummaryFile; dTool <- getDseTool
-  return (RunConfiguration parallelism debugMode tag exitStrat bValid logPre exitF dTool)
+  dockerFlag <- getDockerFlag
+  return (RunConfiguration parallelism debugMode tag exitStrat bValid logPre exitF dTool dockerFlag)
+
+getDockerFlag :: AcaComputation Bool
+getDockerFlag = do
+  st <- get
+  return $ dockerPort st
 
 getDseTool :: AcaComputation DseTool
 getDseTool = do
