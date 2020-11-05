@@ -1,3 +1,4 @@
+\begin{code}
 module Transformations where
 
 import Data.Maybe
@@ -776,3 +777,4 @@ extractExprVars (CCall e1 es _) = (extractExprVars e1)++(concat $ map extractExp
 extractExprVars (CMember e _ _ _) = (extractExprVars e)
 extractExprVars (CVar (Ident n _ _) _) = [n]
 extractExprVars _ = []
+\end{code}

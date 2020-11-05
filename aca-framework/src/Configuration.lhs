@@ -1,3 +1,4 @@
+\begin{code}
 module Configuration where
 
 data Configuration = Configuration
@@ -24,3 +25,4 @@ data Configuration = Configuration
   } deriving (Show)
 
 data CountConfiguration = CountConfiguration { cscFileToCount :: String }
+\end{code}

@@ -1,3 +1,4 @@
+\begin{code}
 module Portfolio where
 
 import LocalPaths
@@ -299,3 +300,4 @@ fullPortfolio timeout gTimeout iTimeout = do
       initTimeout = iTimeout
       }
   return [cpaSeq,uAutomizer,esbmc,pesco,symbiotic,veriAbs,twoLs,cbmc,uTaipan,uKojak,pinaka,seahorn]
+\end{code}

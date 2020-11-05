@@ -1,3 +1,4 @@
+\begin{code}
 {-
 
 A run of modular ACA takes a program and one of its
@@ -68,3 +69,4 @@ makeVarsSymbolic vs = error "need to implement makeVarsSymbolic"
   2. map make symbolic across the set of variables-of-interest
   3. return this compound statement
 -}
+\end{code}

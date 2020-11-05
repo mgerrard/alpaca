@@ -1,3 +1,4 @@
+\begin{code}
 module Parsing where
 import System.IO.Silently
 import Control.Arrow
@@ -58,3 +59,4 @@ printMethod c_file searchterm = do
       [tag,name] | tag `elem` (words "struct union enum") -> Left $ NamedRef (internalIdent name)
       [ident] -> Right (internalIdent ident)
       _ -> error "bad search term"
+\end{code}

@@ -1,3 +1,4 @@
+\begin{code}
 import Parsing
 import System.Environment
 import System.Process
@@ -24,3 +25,4 @@ main = do
   identityTransform
   callCommand "diff -w identity.output.c identity.oracle.c"
   putStrLn "*** All tests passed ***"
+\end{code}

@@ -1,3 +1,4 @@
+\begin{code}
 module CscTypes where
 import qualified Data.Map.Strict as Map
 import Branch
@@ -182,3 +183,4 @@ data DebugMode =
   Direct |
   Generalize |
   Quiet deriving (Show, Eq)
+\end{code}

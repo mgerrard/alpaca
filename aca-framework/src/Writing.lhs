@@ -1,3 +1,4 @@
+\begin{code}
 module Writing where
 
 import AcaComputation
@@ -183,3 +184,4 @@ writeHumanStats statsStr prefix = do
   let humanStatsFile = prefix++"/statistics"
   io $ writeFile humanStatsFile statsStr
 
+\end{code}

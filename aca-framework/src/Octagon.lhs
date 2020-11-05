@@ -1,3 +1,4 @@
+\begin{code}
 module Octagon where
 
 import qualified Data.Map.Strict as M
@@ -207,3 +208,4 @@ produceMeval (OctTwoVar (i1, v1) (i2, v2)) m =
   let (Just val1) = M.lookup v1 m
       (Just val2) = M.lookup v2 m
   in (fromIntegral (((toInteger i1)*(fromCV val1)) + ((toInteger i2)*(fromCV val2))))
+\end{code}

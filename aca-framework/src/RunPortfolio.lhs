@@ -1,3 +1,4 @@
+\begin{code}
 {-# LANGUAGE PackageImports #-}
 module RunPortfolio where
 
@@ -864,3 +865,4 @@ emptySubspace = Subspace {
   inputIdCounts=(Map.fromList []),
   inputIdTypes=(Map.fromList [])
   }
+\end{code}

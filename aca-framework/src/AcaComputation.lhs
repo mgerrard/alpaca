@@ -1,3 +1,4 @@
+\begin{code}
 module AcaComputation where
 
 import Portfolio
@@ -569,3 +570,4 @@ checkForSafety csc@(Csc dps a b c d) =
       let safePartition = CscPartition makeFalseUpper makeFalseLower []
       in Csc [safePartition] a b c d
     else csc
+\end{code}

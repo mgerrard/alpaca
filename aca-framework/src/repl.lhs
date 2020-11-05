@@ -1,3 +1,4 @@
+\begin{code}
 import Control.Monad
 import System.IO
 import Language.C
@@ -227,3 +228,4 @@ collectExpr ast =
 
 printMyAST :: CTranslUnit -> IO ()
 printMyAST ctu = (print . pretty) ctu
+\end{code}

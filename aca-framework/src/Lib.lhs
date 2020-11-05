@@ -1,3 +1,4 @@
+\begin{code}
 module Lib
     ( portfolio,
       runAca,
@@ -13,3 +14,4 @@ import Portfolio
 import Configuration
 --import Refine
 import RunPortfolio
+\end{code}

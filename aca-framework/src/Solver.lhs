@@ -1,3 +1,4 @@
+\begin{code}
 module Solver where
 
 import Data.SBV
@@ -162,3 +163,4 @@ singleUpperBoundIsTrue csc =
     then error "oops, expecting a single partition with a nonempty upper bound"
     else (upperBounds csc) == [trueConjunction]
 
+\end{code}

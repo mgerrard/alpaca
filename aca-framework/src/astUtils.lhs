@@ -1,3 +1,4 @@
+\begin{code}
 {-# LANGUAGE OverloadedStrings #-}
 import System.Environment
 import Control.Monad
@@ -219,3 +220,4 @@ blockItemToStmt _ = []
 
 
 -- Filter by line number and identifier
+\end{code}

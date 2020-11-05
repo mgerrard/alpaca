@@ -1,3 +1,4 @@
+\begin{code}
 module LaunchBenchexec where
 
 import Data.List (isInfixOf)
@@ -53,3 +54,4 @@ propFile _ True = "/PropertyUnreachCall.prp"
 constructXML :: Analyzer -> FilePath -> FilePath -> Bool -> String
 constructXML a f d dock = (xmlHeader a) ++ (makeOptions a) ++ (taskToRun f d dock) ++ xmlFooter
 
+\end{code}

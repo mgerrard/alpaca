@@ -1,3 +1,4 @@
+\begin{code}
 module BinarySearch where
 
 import Data.List (tails, zip4)
@@ -495,3 +496,4 @@ intersectsIO gen (_, up) = do
       env = nub $ map extractVarName $ extractCIndexes genAndUp
   result <- isSat genAndUp env
   return (up, result)
+\end{code}

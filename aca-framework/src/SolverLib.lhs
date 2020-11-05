@@ -1,3 +1,4 @@
+\begin{code}
 module SolverLib where
 
 import CscTypes
@@ -203,3 +204,4 @@ proofUnknown  :: (Conjunction, ThmResult) -> Bool
 proofUnknown (_, (ThmResult (Unknown _ _))) = True
 proofUnknown (_, (ThmResult (ProofError _ _ _))) = True
 proofUnknown _ = False
+\end{code}

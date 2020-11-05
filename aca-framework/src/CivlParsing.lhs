@@ -1,3 +1,4 @@
+\begin{code}
 module CivlParsing where
 
 import Data.List.Split (splitOn, split, oneOf)
@@ -320,3 +321,4 @@ grabSectionLines output keyword =
       section  = splitOn rParens start'
       section' = assert (not (null section)) $ head section
   in lines section'
+\end{code}

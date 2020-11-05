@@ -1,3 +1,4 @@
+\begin{code}
 {-# LANGUAGE MultiWayIf #-}
 
 module Refine where
@@ -146,3 +147,4 @@ data RefineStrategy = ArbitraryStrategy
 
 -- min/max domain percentage covered by a partition
 type RegionProbability = (Rational,Rational)
+\end{code}

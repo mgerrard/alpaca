@@ -1,3 +1,4 @@
+\begin{code}
 module Characterize where
 
 import AcaComputation
@@ -190,3 +191,4 @@ writeCudFiles prefix lastLines (assumptionStr, idx) = do
       partitionName = prefix++".p"++i++".cud"
       partitionStr = assumptionStr++lastLines
   io $ writeFile partitionName partitionStr
+\end{code}

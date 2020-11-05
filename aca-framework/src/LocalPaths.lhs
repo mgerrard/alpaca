@@ -1,3 +1,4 @@
+\begin{code}
 module LocalPaths where
 
 import System.Environment
@@ -14,3 +15,4 @@ analyzerDir = do
     else do
       putStrLn "Could not find path associated with environment variable $ACA_LIB. Aborting"
       assert False (return "")
+\end{code}

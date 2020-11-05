@@ -1,3 +1,4 @@
+\begin{code}
 module Analysis where
 
 import Control.Exception
@@ -476,3 +477,4 @@ initialProgram p initCsc funcName logPre targetFunc cppFlags dTool cud = do
       , iterLogPath=logPath -- set during call to instrument
       }
   return prog
+\end{code}

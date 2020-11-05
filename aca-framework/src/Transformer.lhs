@@ -1,3 +1,4 @@
+\begin{code}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Transformer where
@@ -635,3 +636,4 @@ transformAssign expr = do
   updateReadType typeSpec
   incrCount
   return [(CBlockStmt ifElse),(CBlockStmt (CExpr (Just newAssign) undefNode))]
+\end{code}

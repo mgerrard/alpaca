@@ -82,7 +82,7 @@ library:
 
 executables:
   alpaca:
-    main:                Main.hs
+    main:                Main.lhs
     source-dirs:         app
     ghc-options:
       - -Wall

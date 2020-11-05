@@ -1,3 +1,4 @@
+\begin{code}
 module Reading where
 
 import Language.C
@@ -22,3 +23,4 @@ bailOut err = do
   hPutStrLn stderr (show err)
   hPutStrLn stderr "*** Exit on Error ***"
   exitWith (ExitFailure 1)
+\end{code}

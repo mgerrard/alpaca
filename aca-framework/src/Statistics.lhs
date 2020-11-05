@@ -1,3 +1,4 @@
+\begin{code}
 module Statistics where
 
 import Data.Time
@@ -30,3 +31,4 @@ data Statistics = Statistics {
 
   conjunctsSlicedAway :: Int
   } deriving (Show, Read)
+\end{code}

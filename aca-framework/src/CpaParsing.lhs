@@ -1,3 +1,4 @@
+\begin{code}
 module CpaParsing where
 
 import qualified Data.Map.Strict as Map
@@ -243,3 +244,4 @@ exprTokenToString :: ExprToken -> String
 exprTokenToString (Token s) = s
 exprTokenToString (VarToken (SymVar identifier typeStr idx)) =
   "aca_input_arr_"++typeStr++"_"++(show identifier)++"["++(show idx)++"]"
+\end{code}

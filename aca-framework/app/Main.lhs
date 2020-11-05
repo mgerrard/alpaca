@@ -1,3 +1,4 @@
+\begin{code}
 module Main where
 
 import Lib
@@ -135,3 +136,4 @@ configuration = Configuration
   <*> switch
       (  long "docker"
       <> help "Run portfolio using docker; requires sudo privileges" )
+\end{code}

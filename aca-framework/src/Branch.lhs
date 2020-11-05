@@ -1,3 +1,4 @@
+\begin{code}
 -- Based on examples at https://wiki.haskell.org/HXT/Practical
 {-# LANGUAGE Arrows, NoMonomorphismRestriction #-}
 module Branch where
@@ -69,3 +70,4 @@ getBool :: String -> Bool
 getBool s
   | s == "condition-true" = True
   | otherwise = False
+\end{code}
