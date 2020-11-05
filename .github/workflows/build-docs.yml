@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: docker://pandoc/core:2.9
         with: 
-          args: aca-framework/app/Main.lhs -f markdown+lhs -t html -s -o docs/app/Main.html
+          args: $GITHUB_WORKSPACE/aca-framework/app/Main.lhs -f markdown+lhs -t html -s -o $GITHUB_WORKSPACE/docs/app/Main.html
       - uses: actions/upload-artifact@main
         with:
-          path: docs/app
+          path: $GITHUB_WORKSPACE/docs/app
