@@ -287,4 +287,15 @@ fullPortfolio timeout gTimeout iTimeout = do
       generalizeTimeout = gTimeout,
       initTimeout = iTimeout
       }
-  return [cpaSeq,uAutomizer,esbmc,pesco,symbiotic,veriAbs,twoLs,cbmc,uTaipan,uKojak,cpaBamBnb,pinaka]
+    seahorn = Analyzer {
+      analysisTool = Seahorn,
+      analysisName = "seahorn",
+      analysisDir = portfolioDir ++ "Seahorn",
+      analysisOptions = [("--cex=witness.graphml", Nothing)],
+      safeOverapproximation = True,
+      analysisTimeout = timeout,
+      witnessType = ConcreteInputs,
+      generalizeTimeout = gTimeout,
+      initTimeout = iTimeout
+      }
+  return [cpaSeq,uAutomizer,esbmc,pesco,symbiotic,veriAbs,twoLs,cbmc,uTaipan,uKojak,pinaka,seahorn]

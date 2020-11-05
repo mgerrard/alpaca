@@ -7,6 +7,7 @@ import qualified Data.Map.Strict as Map
 import Language.C.Syntax
 import Language.C
 import System.FilePath.Posix
+import System.Posix.User
 import System.Directory
 import System.Process
 import System.Environment (getEnv, setEnv)
@@ -275,8 +276,17 @@ checkFileExists f = do
     then error $ "oops, i can't find '"++f++"'"
     else return ()
 
+checkDockerPermissions :: Bool -> IO ()
+checkDockerPermissions False = return ()
+checkDockerPermissions True = do
+  uId <- getRealUserID
+  if uId /= 0
+    then error "user must be root to run docker"
+    else return ()
+
 runAca :: Configuration -> IO Csc
-runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPre targetFunc partBound merLen genStrat cppFlags iTimeout exclusion dseT mkCud chCud) = do
+runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPre targetFunc partBound merLen genStrat cppFlags iTimeout exclusion dseT mkCud chCud dockerFlag) = do
+  checkDockerPermissions dockerFlag
   checkFileExists program
   setLibraryEnvironmentVariable
   now <- getCurrentTime
@@ -329,6 +339,7 @@ runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPr
     , dseTool        = dseChoice dseT
     , makeCud        = mkCud
     , chewCud        = chCud
+    , dockerPort     = dockerFlag
     }
 
 dseChoice :: String -> DseTool
@@ -348,7 +359,9 @@ setLibraryEnvironmentVariable = do
       setEnv "ACA_LIB" path'
       return ()
     else do
-      putStrLn "Could not find ~/.aca.config. Aborting"
+      putStrLn $ "Could not find "++acaConfig++". Aborting"
+      putStrLn $ "If running in --docker mode, preserve HOME by running:"
+      putStrLn $ "  sudo --preserve-env=HOME alpaca foo.c"
       assert False (return ())
 
 debugMode :: String -> DebugMode

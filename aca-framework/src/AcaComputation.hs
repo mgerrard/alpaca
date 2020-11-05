@@ -35,7 +35,8 @@ data AcaState = AcaState {
   genStrategy    :: GenStrategy,
   dseTool        :: DseTool,
   makeCud        :: Bool,
-  chewCud        :: String
+  chewCud        :: String,
+  dockerPort     :: Bool
   } deriving (Show)
 
 data Program = Program {
@@ -355,7 +356,13 @@ setupRunConfiguration tag = do
   debugMode <- getDebugMode; exitStrat <- getExitStrategy;
   bValid <- shouldBlockValid; parallelism <- getParallelism
   logPre <- getLogPrefix; exitF <- getExitSummaryFile; dTool <- getDseTool
-  return (RunConfiguration parallelism debugMode tag exitStrat bValid logPre exitF dTool)
+  dockerFlag <- getDockerFlag
+  return (RunConfiguration parallelism debugMode tag exitStrat bValid logPre exitF dTool dockerFlag)
+
+getDockerFlag :: AcaComputation Bool
+getDockerFlag = do
+  st <- get
+  return $ dockerPort st
 
 getDseTool :: AcaComputation DseTool
 getDseTool = do
