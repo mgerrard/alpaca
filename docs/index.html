@@ -227,6 +227,7 @@
 <h2 id="alternating-conditional-analysis">Alternating Conditional Analysis</h2>
 <p>ALPACA is an instantiation of the Alternating Conditional Analysis (ACA) framework. ACA builds upon ideas from conditional model checking <span class="citation" data-cites="beyer:2012:conditional">(Beyer et al. 2012)</span> and alternation between <em>may</em> and <em>must</em> pieces of information returned by an analysis <span class="citation" data-cites="godefroid:2010:compositional">(Godefroid et al. 2010)</span>. The general idea of ACA is to use many static analysis tools to iteratively collect either reachability or unreachability proofs in some part of a program, and to condition analysis tools to ignore the already-analyzed parts.</p>
 <p>The flow diagram for ACA is given below.</p>
+<p><img src="pics/flow-diagram.svg" /></p>
 <p>The above flow diagram is directly reflected in its implementation within ALPACA. Below is the recursive <code>aca</code> function within <code>Analysis.lhs</code>.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ot">aca ::</span> <span class="dt">Program</span> <span class="ot">-&gt;</span> <span class="dt">Csc</span> <span class="ot">-&gt;</span> <span class="dt">AcaComputation</span> <span class="dt">Csc</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>aca program csc <span class="ot">=</span> <span class="kw">do</span></span>

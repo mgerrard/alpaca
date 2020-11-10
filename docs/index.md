@@ -84,6 +84,8 @@ parts.
 
 The flow diagram for ACA is given below.
 
+![](pics/flow-diagram.svg)
+
 The above flow diagram is directly reflected in its
 implementation within ALPACA.
 Below is the recursive `aca` function within
