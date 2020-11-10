@@ -180,6 +180,25 @@
     code span.va { color: #19177c; } /* Variable */
     code span.vs { color: #4070a0; } /* VerbatimString */
     code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+    div.csl-bib-body { }
+    div.csl-entry {
+      clear: both;
+    }
+    .hanging div.csl-entry {
+      margin-left:2em;
+      text-indent:-2em;
+    }
+    div.csl-left-margin {
+      min-width:2em;
+      float:left;
+    }
+    div.csl-right-inline {
+      margin-left:2em;
+      padding-left:1em;
+    }
+    div.csl-indent {
+      margin-left: 2em;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
   <!--[if lt IE 9]>
@@ -190,7 +209,7 @@
 <header id="title-block-header">
 <h1 class="title">ALPACA docs</h1>
 </header>
-<p>These pages document the implementation of ALPACA. Using a small program, we’ll explain <a href="#what-alpaca-computes">what ALPACA computes</a>, <a href="#alternating-conditional-analysis">how it computes this</a>, and then <a href="#stepping-through-a-run">step through a run</a> of ALPACA to name the modules as they are used. An <a href="#index-to-source-files">index</a> to the documentation of individual source files is given at the end.</p>
+<p>These pages document the implementation of ALPACA. Using a small program, we’ll see <a href="#what-alpaca-computes">what ALPACA computes</a>, see <a href="#alternating-conditional-analysis">how it computes this</a>, and <a href="#stepping-through-a-run">step through a run</a> of ALPACA to name the modules as they are used. An <a href="#index-to-source-files">index</a> to the documentation of individual source files is given at the end.</p>
 <h2 id="what-alpaca-computes">What ALPACA computes</h2>
 <p>ALPACA is an analysis tool that determines, for some program and some property-to-be-checked, all the program paths that <em>must</em> or <em>may</em> satisfy the property. (<em>Must</em> information guarantees reachability; <em>may</em> information overapproximates and could introduce false positives.) These program paths are expressed in logical formulae constraining the values of program inputs. For example, consider trying to determine the constraints on <code>x</code> and <code>y</code> that lead to reaching an <code>error()</code> call in the following C program.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>main() {</span>
@@ -206,6 +225,25 @@
 <p>However, determining that all inputs outside of these constraints do not lead to an <code>error()</code> may be difficult for an automated static analysis due to the nonlinear constraint <span class="math inline">\(x&lt;y*y\)</span>. In this case, we may try relaxing the constraint of <span class="math inline">\(x&gt;9 \land x&lt;y*y\)</span> to be simply <span class="math inline">\(x&gt;9\)</span>. With the nonlinearity removed, the static analyses can prove that inputs outside of <span class="math inline">\(x&lt;0 \lor x&gt;9\)</span> will not lead to an <code>error()</code>, and the description of program paths returned by ALPACA becomes slightly more approximate: an <code>error()</code> <em>must</em> be reached if <span class="math inline">\(x&lt;0\)</span>, or if <span class="math inline">\(x&gt;9 \land x&lt;y*y\)</span>, and <em>may</em> be reached if <span class="math inline">\(x&gt;9\)</span>; everything not implied by these formulae will avoid the <code>error()</code>.</p>
 <p>This mix of <em>must</em> and <em>may</em> characterizations is computed using the alternating conditional analysis framework, described next.</p>
 <h2 id="alternating-conditional-analysis">Alternating Conditional Analysis</h2>
+<p>ALPACA is an instantiation of the Alternating Conditional Analysis (ACA) framework. ACA builds upon ideas from conditional model checking <span class="citation" data-cites="beyer:2012:conditional">(Beyer et al. 2012)</span> and alternation between <em>may</em> and <em>must</em> pieces of information returned by an analysis <span class="citation" data-cites="godefroid:2010:compositional">(Godefroid et al. 2010)</span>. The general idea of ACA is to use many static analysis tools to iteratively collect either reachability or unreachability proofs in some part of a program, and to condition analysis tools to ignore the already-analyzed parts.</p>
+<p>The flow diagram for ACA is given below.</p>
+<p>The above flow diagram is directly reflected in its implementation within ALPACA. Below is the recursive <code>aca</code> function within <code>Analysis.lhs</code>.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ot">aca ::</span> <span class="dt">Program</span> <span class="ot">-&gt;</span> <span class="dt">Csc</span> <span class="ot">-&gt;</span> <span class="dt">AcaComputation</span> <span class="dt">Csc</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>aca program csc <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> exploreSubspace program csc</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">case</span> result <span class="kw">of</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">UnreachableEvidence</span> <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>      csc&#39; <span class="ot">&lt;-</span> enforceDisjointness csc</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>      lastWrites csc&#39;</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>      <span class="fu">return</span> csc&#39;</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    (<span class="dt">ReachableEvidence</span> ev) <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>      csc&#39; <span class="ot">&lt;-</span> characterize ev</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>      program&#39; <span class="ot">&lt;-</span> condition program csc&#39;</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>      aca program&#39; csc&#39;</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">NoEvidence</span> <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>      csc&#39; <span class="ot">&lt;-</span> generalize csc</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>      program&#39; <span class="ot">&lt;-</span> condition program csc&#39;</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>      aca program&#39; csc&#39;</span></code></pre></div>
 <h2 id="stepping-through-a-run">Stepping through a run</h2>
 <h2 id="index-to-source-files">Index to source files</h2>
 <p>The entrypoint of the program is <a href="app/Main.html">Main</a>, the high-level logic is in <a href="src/Analysis.html">Analysis</a>, and the rest is here:</p>
@@ -235,5 +273,14 @@
 <li><a href="src/Transformer.html">Transformer</a></li>
 <li><a href="src/Writing.html">Writing</a></li>
 </ul>
+<h1 class="unnumbered" id="references">References</h1>
+<div id="refs" class="references csl-bib-body hanging-indent" role="doc-bibliography">
+<div id="ref-beyer:2012:conditional" class="csl-entry" role="doc-biblioentry">
+Beyer, Dirk, Thomas A Henzinger, M Erkan Keremoglu, and Philipp Wendler. 2012. <span>“Conditional Model Checking: A Technique to Pass Information Between Verifiers.”</span> In <em>Proceedings of the ACM SIGSOFT 20th International Symposium on the Foundations of Software Engineering</em>, 1–11.
+</div>
+<div id="ref-godefroid:2010:compositional" class="csl-entry" role="doc-biblioentry">
+Godefroid, Patrice, Aditya V Nori, Sriram K Rajamani, and Sai Deep Tetali. 2010. <span>“Compositional May-Must Program Analysis: Unleashing the Power of Alternation.”</span> In <em>Proceedings of the 37th Annual ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages</em>, 43–56.
+</div>
+</div>
 </body>
 </html>

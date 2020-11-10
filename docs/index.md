@@ -3,9 +3,9 @@ title: ALPACA docs
 ...
 
 These pages document the implementation of ALPACA.
-Using a small program, we'll explain [what ALPACA computes],
-[how it computes this][Alternating Conditional Analysis],
-and then [step through a run][Stepping through a run] of
+Using a small program, we'll see [what ALPACA computes],
+see [how it computes this][Alternating Conditional Analysis],
+and [step through a run][Stepping through a run] of
 ALPACA to name the modules as they are used.
 An [index][Index to source files] to the documentation of
 individual source files is given at the end.
@@ -69,6 +69,45 @@ framework, described next.
 Alternating Conditional Analysis
 --------------------------------
 
+ALPACA is an instantiation of the Alternating Conditional
+Analysis (ACA) framework.
+ACA builds upon ideas from
+conditional model checking [@beyer:2012:conditional]
+and alternation between *may* and *must* pieces of
+information returned by an
+analysis [@godefroid:2010:compositional].
+The general idea of ACA is to use many static analysis
+tools to iteratively collect either reachability or
+unreachability proofs in some part of a program, and to
+condition analysis tools to ignore the already-analyzed
+parts.
+
+The flow diagram for ACA is given below.
+
+The above flow diagram is directly reflected in its
+implementation within ALPACA.
+Below is the recursive `aca` function within
+`Analysis.lhs`.
+
+``` haskell
+aca :: Program -> Csc -> AcaComputation Csc
+aca program csc = do
+  result <- exploreSubspace program csc
+  case result of
+    UnreachableEvidence -> do
+      csc' <- enforceDisjointness csc
+      lastWrites csc'
+      return csc'
+    (ReachableEvidence ev) -> do
+      csc' <- characterize ev
+      program' <- condition program csc'
+      aca program' csc'
+    NoEvidence -> do
+      csc' <- generalize csc
+      program' <- condition program csc'
+      aca program' csc'
+```
+
 Stepping through a run
 ----------------------
 
@@ -103,3 +142,5 @@ the rest is here:
 * [Transformations](src/Transformations.html)
 * [Transformer](src/Transformer.html)
 * [Writing](src/Writing.html)
+
+# References
