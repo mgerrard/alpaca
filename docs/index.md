@@ -1,14 +1,14 @@
 ---
-title: ALPACA docs
+title: ALPACA documentation
 ...
 
 These pages document the implementation of ALPACA.
-Using a small program, we'll see [what ALPACA computes],
-see [how it computes this][Alternating Conditional Analysis],
-and [step through a run][Stepping through a run] of
-ALPACA to name the modules as they are used.
-An [index][Index to source files] to the documentation of
-individual source files is given at the end.
+We'll see [what ALPACA computes],
+discuss [how it computes this][Alternating Conditional Analysis],
+and [step through a typical run][Stepping through a run]
+to name some code modules as they are used.
+An [index][Index to source files] to more complete
+documentation of individual source files is given at the end.
 
 What ALPACA computes
 --------------------
@@ -18,7 +18,7 @@ and some property-to-be-checked, all the program paths that
 *must* or *may* satisfy the property.
 (*Must* information guarantees reachability; *may* information
 overapproximates and could introduce false positives.)
-These program paths are expressed in logical formulae
+These program paths are expressed as logical formulae
 constraining the values of program inputs.
 For example, consider trying to determine the constraints
 on `x` and `y` that lead to reaching an `error()` call
@@ -128,6 +128,59 @@ aca program csc = do
 
 Stepping through a run
 ----------------------
+
+To get a rough feel of how the code is executed during
+a typical run of ALPACA, let's step through a simulated
+run at a high level.
+
+When running `alpaca --portfolio cpaSeq,cbmc foo.c` on
+the following simple C program:
+``` c
+int main() {
+  int x=input();
+  if (x<0) { error(); }
+}
+```
+1. the command-line arguments are parsed in [Main](app/Main.html)
+2. the options are placed in a data structure defined in [Configuration](src/Configuration.html)
+3. this configuration is used to instantiate the state of ACA's computation
+(defined as a state transformer in [AcaComputation](src/AcaComputation.html))
+4. an artifacts folder is created at `./logs_alpaca/foo/`; this is where
+conditioned programs, tool results, and logs about each iteration will be
+written to
+5. the setup steps are done in `runAca` within [Analysis](src/Analysis.html), and the
+core logic can now be launched from `aca` within the same file
+6. the portfolio of two tools is launched from the function
+`exploreSubspace` within [Analysis](src/Analysis.html), which uses functions
+defined in [RunPortfolio](src/RunPortfolio.html) and [LaunchBenchexec](src/LaunchBenchexec.html).
+7. let's say CBMC finds reachability evidence: $x<0$; this
+evidence is verified and characterized as a logical formula via the
+symbolic execution engine CIVL, using code from
+[RunPortfolio](src/RunPortfolio.html),
+[CivlParsing](src/CivlParsing.html),
+and [Characterize](src/Characterize.html)
+8. this evidence is added to the comprehensive state
+characterization (`Csc`) defined in [CscTypes](src/CscTypes.html)
+9. `foo.c` is instrumented to block the input space accounted
+for in the CSC by adding `assume(!(x<0));` using code from
+[Transformations](src/Transformations.html) and [Transformer](src/Transformer.html)
+10. the tool portfolio is run on this conditioned program
+in a second call to `aca`; this time CPA-Seq declares that
+the remainder of the program cannot reach the `error()`
+statement, which is ACA's termination condition
+11. the final CSC is displayed, the final artifacts are written,
+and ALPACA exits
+
+Note that this step-through is not at all exhaustive:
+it does not cover the case when
+ACA requires generalization (which invokes code within
+[Characterize](src/Characterize.html) and
+[BinarySearch](src/BinarySearch.html)), does not discuss
+all configuration options (shown with `alpaca -h`),
+does not list each created artifact, does not
+name each code module used, etc.
+For more details, refer to the documentation
+in the individual source files, linked below.
 
 Index to source files
 ---------------------

@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>ALPACA docs</title>
+  <title>ALPACA documentation</title>
   <style>
     html {
       line-height: 1.7;
@@ -207,11 +207,11 @@
 </head>
 <body>
 <header id="title-block-header">
-<h1 class="title">ALPACA docs</h1>
+<h1 class="title">ALPACA documentation</h1>
 </header>
-<p>These pages document the implementation of ALPACA. Using a small program, we’ll see <a href="#what-alpaca-computes">what ALPACA computes</a>, see <a href="#alternating-conditional-analysis">how it computes this</a>, and <a href="#stepping-through-a-run">step through a run</a> of ALPACA to name the modules as they are used. An <a href="#index-to-source-files">index</a> to the documentation of individual source files is given at the end.</p>
+<p>These pages document the implementation of ALPACA. We’ll see <a href="#what-alpaca-computes">what ALPACA computes</a>, discuss <a href="#alternating-conditional-analysis">how it computes this</a>, and <a href="#stepping-through-a-run">step through a typical run</a> to name some code modules as they are used. An <a href="#index-to-source-files">index</a> to more complete documentation of individual source files is given at the end.</p>
 <h2 id="what-alpaca-computes">What ALPACA computes</h2>
-<p>ALPACA is an analysis tool that determines, for some program and some property-to-be-checked, all the program paths that <em>must</em> or <em>may</em> satisfy the property. (<em>Must</em> information guarantees reachability; <em>may</em> information overapproximates and could introduce false positives.) These program paths are expressed in logical formulae constraining the values of program inputs. For example, consider trying to determine the constraints on <code>x</code> and <code>y</code> that lead to reaching an <code>error()</code> call in the following C program.</p>
+<p>ALPACA is an analysis tool that determines, for some program and some property-to-be-checked, all the program paths that <em>must</em> or <em>may</em> satisfy the property. (<em>Must</em> information guarantees reachability; <em>may</em> information overapproximates and could introduce false positives.) These program paths are expressed as logical formulae constraining the values of program inputs. For example, consider trying to determine the constraints on <code>x</code> and <code>y</code> that lead to reaching an <code>error()</code> call in the following C program.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>main() {</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">int</span> x=input(); <span class="dt">int</span> y=input();</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -246,6 +246,26 @@
 <span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>      program&#39; <span class="ot">&lt;-</span> condition program csc&#39;</span>
 <span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>      aca program&#39; csc&#39;</span></code></pre></div>
 <h2 id="stepping-through-a-run">Stepping through a run</h2>
+<p>To get a rough feel of how the code is executed during a typical run of ALPACA, let’s step through a simulated run at a high level.</p>
+<p>When running <code>alpaca --portfolio cpaSeq,cbmc foo.c</code> on the following simple C program:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main() {</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">int</span> x=input();</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (x&lt;<span class="dv">0</span>) { error(); }</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<ol type="1">
+<li>the command-line arguments are parsed in <a href="app/Main.html">Main</a></li>
+<li>the options are placed in a data structure defined in <a href="src/Configuration.html">Configuration</a></li>
+<li>this configuration is used to instantiate the state of ACA’s computation (defined as a state transformer in <a href="src/AcaComputation.html">AcaComputation</a>)</li>
+<li>an artifacts folder is created at <code>./logs_alpaca/foo/</code>; this is where conditioned programs, tool results, and logs about each iteration will be written to</li>
+<li>the setup steps are done in <code>runAca</code> within <a href="src/Analysis.html">Analysis</a>, and the core logic can now be launched from <code>aca</code> within the same file</li>
+<li>the portfolio of two tools is launched from the function <code>exploreSubspace</code> within <a href="src/Analysis.html">Analysis</a>, which uses functions defined in <a href="src/RunPortfolio.html">RunPortfolio</a> and <a href="src/LaunchBenchexec.html">LaunchBenchexec</a>.</li>
+<li>let’s say CBMC finds reachability evidence: <span class="math inline">\(x&lt;0\)</span>; this evidence is verified and characterized as a logical formula via the symbolic execution engine CIVL, using code from <a href="src/RunPortfolio.html">RunPortfolio</a>, <a href="src/CivlParsing.html">CivlParsing</a>, and <a href="src/Characterize.html">Characterize</a></li>
+<li>this evidence is added to the comprehensive state characterization (<code>Csc</code>) defined in <a href="src/CscTypes.html">CscTypes</a></li>
+<li><code>foo.c</code> is instrumented to block the input space accounted for in the CSC by adding <code>assume(!(x&lt;0));</code> using code from <a href="src/Transformations.html">Transformations</a> and <a href="src/Transformer.html">Transformer</a></li>
+<li>the tool portfolio is run on this conditioned program in a second call to <code>aca</code>; this time CPA-Seq declares that the remainder of the program cannot reach the <code>error()</code> statement, which is ACA’s termination condition</li>
+<li>the final CSC is displayed, the final artifacts are written, and ALPACA exits</li>
+</ol>
+<p>Note that this step-through is not at all exhaustive: it does not cover the case when ACA requires generalization (which invokes code within <a href="src/Characterize.html">Characterize</a> and <a href="src/BinarySearch.html">BinarySearch</a>), does not discuss all configuration options (shown with <code>alpaca -h</code>), does not list each created artifact, does not name each code module used, etc. For more details, refer to the documentation in the individual source files, linked below.</p>
 <h2 id="index-to-source-files">Index to source files</h2>
 <p>The entrypoint of the program is <a href="app/Main.html">Main</a>, the high-level logic is in <a href="src/Analysis.html">Analysis</a>, and the rest is here:</p>
 <ul>
