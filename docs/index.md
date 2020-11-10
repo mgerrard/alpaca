@@ -76,12 +76,26 @@ conditional model checking [@beyer:2012:conditional]
 and alternation between *may* and *must* pieces of
 information returned by an
 analysis [@godefroid:2010:compositional].
-The general idea of ACA is to use many static analysis
-tools to iteratively collect either reachability or
-unreachability proofs in some part of a program, and to
-condition analysis tools to ignore the already-analyzed
-parts.
 
+ACA takes as input a program and a property,
+and returns a logical characterization that
+relates the property’s reachability to all program states.
+We call this structure a comprehensive state characterization, 
+or a CSC.
+ACA iteratively collects this logical description by
+running multiple analysis tools to explore the program
+in parallel,
+characterizing their results,
+and blocking (i.e., conditioning away from)
+already-seen paths until 
+all of the paths have been accounted for.
+In order to reach a fixed point, if no new evidence
+is found, there is a generalization phase that
+"widens" the CSC, i.e., relaxes some *must* constraints
+to *may* constraints.
+The terminating condition is when some overapproximating
+tool reports unreachability in the thus-uncovered
+portion of the program.
 The flow diagram for ACA is given below.
 
 ![](pics/flow-diagram.svg)
@@ -90,6 +104,8 @@ The above flow diagram is directly reflected in its
 implementation within ALPACA.
 Below is the recursive `aca` function within
 `Analysis.lhs`.
+(The assumed property is to check for the
+reachability of a `__VERIFIER_error()` call.)
 
 ``` haskell
 aca :: Program -> Csc -> AcaComputation Csc
