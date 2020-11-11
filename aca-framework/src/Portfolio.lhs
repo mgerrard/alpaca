@@ -90,7 +90,6 @@ portfolioSubset pFilter exclusions p =
 
 correspondingTool :: Portfolio -> String -> Maybe Analyzer
 correspondingTool p "cpaSeq" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==CPA_Seq) p
-correspondingTool p "cpaBamBnb" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==CPA_BAM_BnB) p
 correspondingTool p "uAutomizer" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==UAutomizer) p
 correspondingTool p "uKojak" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==UKojak) p
 correspondingTool p "uTaipan" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==UTaipan) p
@@ -251,24 +250,6 @@ fullPortfolio timeout gTimeout iTimeout = do
       analysisOptions = [
         ("--full-output", Nothing),
         ("--architecture", Just "32bit")],
-      safeOverapproximation = True,
-      analysisTimeout = timeout,
-      witnessType = BranchDirectives,
-      generalizeTimeout = gTimeout,
-      initTimeout = iTimeout
-      }
-    cpaBamBnb = Analyzer {
-      analysisTool = CPA_BAM_BnB,
-      analysisName = "cpachecker",
-      analysisDir = portfolioDir ++ "CPA_BAM_BnB",
-      analysisOptions = [
-        ("-svcomp19-bam-bnb", Nothing),
-        ("-disable-java-assertions", Nothing),
-        ("-heap", Just "10000m"),
-        ("-setprop", Just "analysis.checkCounterexamples=false"),
-        ("-setprop", Just "cfa.allowBranchSwapping=false"),
-        ("-setprop", Just "cpa.arg.witness.exportSourcecode=true"),
-        ("-32", Nothing)],
       safeOverapproximation = True,
       analysisTimeout = timeout,
       witnessType = BranchDirectives,

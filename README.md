@@ -29,7 +29,6 @@ This is an instantiation of the
 * [VeriAbs](https://link.springer.com/chapter/10.1007/978-3-319-89963-3_32)
 * [2LS](https://github.com/diffblue/2ls)
 * [CBMC](https://github.com/diffblue/cbmc)
-* [CPA_BAM_BnB](https://link.springer.com/chapter/10.1007/978-3-662-54580-5_22)
 * [UltimateKojak](https://ultimate.informatik.uni-freiburg.de/)
 * [UltimateTaipan](https://ultimate.informatik.uni-freiburg.de/)
 * [Pinaka](https://github.com/sbjoshi/Pinaka)
