@@ -292,7 +292,7 @@ runBenchexec cFile a timeout oDir mTag debug logPre False = do
   let outDir = absoluteOutDir pre oDir
   let progPath = absoluteFullFile pre cFile
   let uniquePath = programWithinToolDir progPath a
-  copyFile progPath uniquePath
+  copyNonvalidatorFile a progPath uniquePath
   let fullFile = absoluteFullFile pre cFile
   let xmlString = constructXML a fullFile baseDir False
   let xmlHandle = makeXmlHandle pre oDir a mTag
@@ -301,6 +301,10 @@ runBenchexec cFile a timeout oDir mTag debug logPre False = do
   let args = [script, cFile, xmlHandle, outDir, aDir, (show timeout)]
   if debug then putStrLn ("Call to benchexec:\n\n "++"bash "++(show args)) else return ()
   readProcessWithExitCode "bash" args ""
+
+copyNonvalidatorFile :: Analyzer -> FilePath -> FilePath -> IO ()
+copyNonvalidatorFile (Analyzer CPA_Validator _ _ _ _ _ _ _ _) _ _ = return ()
+copyNonvalidatorFile _ progPath uniquePath = copyFile progPath uniquePath
 
 absolutePrefix :: FilePath -> FilePath -> FilePath
 absolutePrefix "." currDir = currDir
@@ -396,7 +400,9 @@ normalizeWitness Nothing _ _ _ _ _ _ _ = return Nothing
 normalizeWitness f _ (Analyzer _ _ _ _ _ _ BranchDirectives _ _) _ _ _ _ _ = return f
 normalizeWitness f _ _ _ _ _ CpaSymExec _ = return f
 normalizeWitness (Just w) p a mTag debug logPre _ dock = do
-  _ <- error "witness validation within docker container not set up for doppios yet"
+  if dock
+    then error "witness validation within docker container not set up for doppios yet"
+    else return ()
   currDir <- getCurrentDirectory
   let pre = absolutePrefix logPre currDir
   let witness = pre ++ "/" ++ w
@@ -810,7 +816,7 @@ checkAnalysisWitness CivlSymExec d blockV _ witness@(AnalysisWitness tool progPa
   -- a result contains:
   --  a file handle (passed by the witness) and
   --  the output from CIVL's run
-  let uniquePath = programWithinToolDir progPath tool  
+  let uniquePath = programWithinToolDir progPath tool
   let witness' = witness { programPath = uniquePath }
   result <- (guidedSymExec witness' CivlSymExec d False)
   if isJust result
