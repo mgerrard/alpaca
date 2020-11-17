@@ -2,7 +2,7 @@
 module CivlParsing where
 
 import Data.List.Split (splitOn, split, oneOf)
-import Data.List (sortBy, groupBy, nub, nubBy, sort, partition, isInfixOf)
+import Data.List (sortBy, groupBy, nub, nubBy, sort, partition, isInfixOf, find)
 import Data.Function (on)
 import Control.Monad (join)
 import Control.Exception
@@ -95,12 +95,40 @@ transformConjunct :: [(String, String)] -> String -> String
 transformConjunct assocMap conj =
   let t    = (\word pair -> if (fst pair)==word then (snd pair) else word)
       cs   = (split . oneOf) " %()*/" conj
-      cs'  = map (\word -> foldl t word assocMap) cs
+      csP = pointerTransform cs
+      cs'  = map (\word -> foldl t word assocMap) csP
       cs''  = wrapBitwiseAnd cs'
       cs''' = simplifyTernaryTautology $ concat cs''
       cs'''' = removeIdentityMultOp cs'''
       cs''''' = replaceDivOp cs''''
   in cs'''''
+
+{-
+The following hack relies on these assumptions:
+ - we are treating symbolic pointers in a boolean way:
+   + the pointer is either NULL
+   + or the pointer is *not* NULL
+ - CIVL will report a NULL pointer in the regex form:
+   + 0 != *SYMVAR.*&&*
+   + we translate this to: SYMVAR == 0
+ - CIVL will report a non-NULL pointer in the regex form:
+   + 0 != *SYMVAR.*||*
+   + we translate this to: SYMVAR != 0
+-}
+pointerTransform :: [String] -> [String]
+pointerTransform s =
+  if ("||" `elem` s) && (any (\sub -> '.' `elem` sub) s)
+    then
+      let (Just civlSym) = find (\sub -> '.' `elem` sub) s
+          symElem = takeWhile (\c -> c /= '.') civlSym
+      in [symElem,"!=","0"]
+    else 
+      if ("&&" `elem` s) && (any (\sub -> '.' `elem` sub) s)
+        then
+          let (Just civlSym) = find (\sub -> '.' `elem` sub) s
+              symElem = takeWhile (\c -> c /= '.') civlSym
+          in [symElem,"==","0"]
+        else s
 
 wrapBitwiseAnd :: [String] -> [String]
 wrapBitwiseAnd s =
