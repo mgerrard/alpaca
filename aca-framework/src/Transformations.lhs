@@ -30,7 +30,8 @@ extractInitTypeStr :: CDecl -> String
 extractInitTypeStr decl =
   let (CDecl declSpec _ _) = decl
       singleSpec = assert (not (null declSpec)) $ head declSpec
-  in (show . pretty) singleSpec
+      stringSpec = (show . pretty) singleSpec
+  in stringSpec
 
 extractInitType :: CDecl -> CDeclSpec
 extractInitType decl =
@@ -273,12 +274,16 @@ forComparison n = makeLtExpr "i" $ acaNumPrefix ++ (show n)
 forIncrement :: CExpr
 forIncrement = makeVar "i++"
 
+deriveType :: String -> String
+deriveType "void" = "void *"
+deriveType _ = "int"
+
 forBody :: Bool -> Int -> String -> CStat
 forBody isCivl n ty =
   let ty'  = typeTag ty
       tmpName = "tmp_" ++ acaArrPrefix ++ ty' ++ "_" ++ (show n)
-      expr1 = declareVarInit intType tmpName ("__VERIFIER_nondet_" ++ ty' ++ "()")
-      blockExpr1 = CBlockDecl expr1
+      initV = varInit ((deriveType ty)++" "++tmpName) ("__VERIFIER_nondet_" ++ ty' ++ "()")
+      blockExpr1 = CBlockDecl initV
       idxVarName = acaArrPrefix ++ ty' ++ "_" ++ (show n) ++ "[i]"
       expr = assignExpr idxVarName tmpName
       expr2 = CExpr (Just expr) undefNode

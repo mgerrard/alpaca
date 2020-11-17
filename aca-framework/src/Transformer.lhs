@@ -615,11 +615,21 @@ transformDeclInstr decl = do
   let typeSpec = extractInitType decl
   let tyInfix  = typeInfix typeSpec
   let newVar   = "aca_input_var_"++tyInfix++(show c)
-  let ifElse   = makeInstrIfElseExpr c newVar tyInfix typeStr  
-  let newDecl = declareVarInit typeSpec origVar newVar
+  let ifElse   = makeInstrIfElseExpr c newVar tyInfix typeStr
+  -- make a new string out of ((inferTypeStr :: CDeclSpec -> String)++origVar) newVar
+  let newDecl = varInit ((transformInfer typeSpec)++" "++origVar) newVar
+--  let newDecl = declareVarInit typeSpec origVar newVar
   updateReadType typeSpec
   incrCount  
   return [(CBlockStmt ifElse),(CBlockDecl newDecl)]
+
+transformInfer :: CDeclSpec -> String
+transformInfer s =
+  let str = inferTypeStr s
+  in
+    if str=="pointer"
+      then "void *"
+      else str
 
 transformAssign :: CExpr -> Transformer [CBlockItem]
 transformAssign expr = do
