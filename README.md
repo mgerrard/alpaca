@@ -35,6 +35,17 @@ This is an instantiation of the
 
 ---
 
+### BenchExec and Ubuntu interaction bug
+
+An Ubuntu update in October 2020 broke container functionality in BenchExec, documented [here](https://github.com/sosy-lab/benchexec/issues/621).
+To work around this, I am running in `--docker` mode. Unfortunately this requires a `sudo` command every time due to launching `docker` in
+priviledged mode (necessary for the container-within-container, i.e., BenchExec within Docker, solution). Typing `sudo` every time is annoying,
+so I tell my system to stop asking just for the ALPACA command by running `sudo visudo` and adding this line to the end:
+`mjg6v ALL=(ALL) NOPASSWD:SETENV: /home/mjg6v/.local/bin/alpaca`. I set up an alias for running ALPACA under the name of `aca` by adding
+this line to my `~/.bashrc` file: `alias aca="sudo -E /home/mjg6v/.local/bin/alpaca --docker --dse cpa"`.
+
+---
+
 #### Directory structure
 
 The source for this project is in
@@ -56,15 +67,6 @@ C programs with embedded assertions
 are in `./examples`.
 The testing infrastructure is in
 `./aca-framework/test/`.
-
-### BenchExec and Ubuntu interaction bug
-
-An Ubuntu update in October 2020 broke container functionality in BenchExec, documented [here](https://github.com/sosy-lab/benchexec/issues/621).
-To work around this, I am running in `--docker` mode. Unfortunately this requires a `sudo` command every time due to launching `docker` in
-priviledged mode (necessary for the container-within-container, i.e., BenchExec within Docker, solution). Typing `sudo` every time is annoying,
-so I tell my system to stop asking just for the ALPACA command by running `sudo visudo` and adding this line to the end:
-`mjg6v ALL=(ALL) NOPASSWD:SETENV: /home/mjg6v/.local/bin/alpaca`. I set up an alias for running ALPACA under the name of `aca` by adding
-this line to my `~/.bashrc` file: `alias aca="sudo -E /home/mjg6v/.local/bin/alpaca --docker --dse cpa"`.
 
 #### Installation
 
