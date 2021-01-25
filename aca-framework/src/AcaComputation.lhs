@@ -37,7 +37,8 @@ data AcaState = AcaState {
   dseTool        :: DseTool,
   makeCud        :: Bool,
   chewCud        :: String,
-  dockerPort     :: Bool
+  dockerPort     :: Bool,
+  minusAca       :: Bool
   } deriving (Show)
 
 data Program = Program {

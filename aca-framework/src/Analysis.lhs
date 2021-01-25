@@ -146,7 +146,7 @@ exploreSubspace program csc = do
   
   let newResults = filter (isNewEvidence csc) results
   st <- get
-  let shouldStop = stopEarly st
+  let shouldStop = (minusAca st) || (stopEarly st)
 
   if shouldStop
     then do
@@ -286,12 +286,12 @@ checkDockerPermissions True = do
     else return ()
 
 runAca :: Configuration -> IO Csc
-runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPre targetFunc partBound merLen genStrat cppFlags iTimeout exclusion dseT mkCud chCud dockerFlag) = do
+runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPre targetFunc partBound merLen genStrat cppFlags iTimeout exclusion dseT mkCud chCud dockerFlag minusAcaFlag) = do
   checkDockerPermissions dockerFlag
   checkFileExists program
   setLibraryEnvironmentVariable
   now <- getCurrentTime
-  initProgram <- initialProgram program "" "main" logPre targetFunc cppFlags (dseChoice dseT) chCud
+  initProgram <- initialProgram program "" "main" logPre targetFunc cppFlags (dseChoice dseT) chCud minusAcaFlag
   end1 <- getCurrentTime
 
   let astReadTime = formatFloatN ((realToFrac $ diffUTCTime end1 now)::Float) 4
@@ -341,6 +341,7 @@ runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPr
     , makeCud        = mkCud
     , chewCud        = chCud
     , dockerPort     = dockerFlag
+    , minusAca       = minusAcaFlag
     }
 
 dseChoice :: String -> DseTool
@@ -431,8 +432,8 @@ wrapCudInMaybe cudFile = do
       assump = cudLines !! 0
   return $ Just assump
 
-initialProgram :: FilePath -> FilePath -> String -> FilePath -> String -> String -> DseTool -> String -> IO Program
-initialProgram p initCsc "main" logPre targetFunc cppFlags dTool cud = do
+initialProgram :: FilePath -> FilePath -> String -> FilePath -> String -> String -> DseTool -> String -> Bool -> IO Program
+initialProgram p initCsc "main" logPre targetFunc cppFlags dTool cud minAca = do
   let iter = 1
   let n = bareProgramName p targetFunc
   let iterTag = "iter.1"
@@ -446,14 +447,14 @@ initialProgram p initCsc "main" logPre targetFunc cppFlags dTool cud = do
   let pAst' = twoPassTransform pAst targetFunc dTool mCud
   let prog = Program {
         sourcePath=filePath
-      , ast=pAst'
+      , ast=(if minAca then pAst else pAst')
       , pName=n
       , iteration=iter
       , iterLogPath=logPath -- set during call to instrument
       }
   return prog
 {- Construct modular ACA program -}
-initialProgram p initCsc funcName logPre targetFunc cppFlags dTool cud = do
+initialProgram p initCsc funcName logPre targetFunc cppFlags dTool cud minAca = do
   let iter = 1
   let n = last $ splitOn "/" $ dropExtension p
   let name' = funcName ++ "_aca_" ++ n;

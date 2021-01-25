@@ -136,4 +136,7 @@ configuration = Configuration
   <*> switch
       (  long "docker"
       <> help "Run portfolio using docker; requires sudo privileges" )
+  <*> switch
+      (  long "minus-aca"
+      <> help "Run portfolio once on uninstrumented file" )
 \end{code}
