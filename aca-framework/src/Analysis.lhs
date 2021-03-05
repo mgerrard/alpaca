@@ -414,7 +414,8 @@ runPreprocessor p flags = do
       _ <- readProcessWithExitCode "cpp" [p', p''] ""
       return p''
     else do
-      _ <- readProcessWithExitCode "cpp" [flags, p', p''] ""
+      let flags' = splitOn " " flags
+      _ <- readProcessWithExitCode "cpp" (flags'++[p', p'']) ""
       return p''
 
 bareProgramName :: FilePath -> String -> String
