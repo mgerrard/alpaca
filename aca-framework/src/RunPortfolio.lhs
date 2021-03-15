@@ -354,7 +354,10 @@ parseResult res a p time mTag debug logPre dTool dock = do
   let path = deriveOutputDir p a mTag
   let summary = getResultSummary res
   case summary of
-    TrueResult -> do removeArtifacts path; return $ validateResult a time
+    TrueResult -> do 
+      w <- tryToGatherWitness path -- for Vicuna
+      removeArtifacts path
+      return $ validateResult a time
     FalseResult -> parseWitness a p time mTag debug logPre dTool dock
     _ -> do removeArtifacts path; return Nothing
 
