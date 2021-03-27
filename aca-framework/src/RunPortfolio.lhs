@@ -130,8 +130,6 @@ updatePortfolio p witnesses =
 launchSeahorn :: FilePath -> Analyzer -> Int -> FilePath -> Maybe Int -> FilePath -> IO String
 launchSeahorn cFile a t oDir _ logPre = do
   currDir <- getCurrentDirectory
-  baseDir <- getAnalyzerDir
-  let aDir = analysisDir a
   let pre = absolutePrefix logPre currDir
   let outDir = absoluteOutDir pre oDir
   let progPath = absoluteFullFile pre cFile
@@ -156,7 +154,6 @@ runAnalyzer p d mTag logPre _ dTool dock a@(Analyzer Seahorn _ _ _ _ _ _ _ _) = 
   let t = deriveTimeout a mTag p
 
   start <- getCurrentTime
-  let oDir = deriveOutputDir p a mTag
   rawResult <- launchSeahorn cFile a t outputDir mTag logPre
   end <- getCurrentTime
   let elapsedTime = (realToFrac :: (Real a) => a -> Float) $ diffUTCTime end start
@@ -247,7 +244,7 @@ executeValidator p validator concreteAnalyzer mTag debug logPre dock = do
   createDirectoryIfMissing True outputDir
   let timeout = 90 -- standard witness timeout
   let cFile = sourcePath p
-  (exitCode, stdout, stderr) <- runBenchexec cFile validator timeout outputDir mTag debug logPre dock
+  (exitCode, stdout, stderr) <- runBenchexecValidator cFile validator timeout outputDir mTag debug logPre dock concreteAnalyzer
 
   if debug
   then do
@@ -257,17 +254,53 @@ executeValidator p validator concreteAnalyzer mTag debug logPre dock = do
   else do return ()
 
   return (exitCode, stdout, stderr)
-  
+
+dirToValidate :: FilePath -> FilePath
+dirToValidate outDir = intercalate "/" $ init $ splitOn "/" outDir
+
+validatorSetup :: FilePath -> Analyzer -> Int -> String -> Maybe Int -> Bool -> FilePath -> Analyzer -> IO String
+validatorSetup cFile a _ oDir mTag _ logPre concreteAnalyzer = do
+  currDir <- getCurrentDirectory
+  let pre = absolutePrefix logPre currDir
+      outDir = absoluteOutDir pre oDir
+      progPath = absoluteFullFile pre cFile
+      uniquePath = programWithinToolDir progPath concreteAnalyzer
+      progName = last $ splitOn "/" uniquePath
+      witnessFile = (dirToValidate outDir)++"/witness.graphml"
+  copyFile progPath (outDir++"/"++progName)
+  copyFile witnessFile (outDir++"/witness.graphml") 
+  let fName = takeFileName cFile
+      t = show $ analysisTool concreteAnalyzer
+      containerFile = "/home/alpaca_logs/"++fName++"."++t++".c"
+      xmlString = constructXML a containerFile "/home/alpaca_logs/" True
+      xmlHandle = makeXmlHandle pre oDir a mTag
+  writeFile xmlHandle xmlString
+  return outDir
+
+runBenchexecValidator :: FilePath -> Analyzer -> Int -> String -> Maybe Int -> Bool -> FilePath -> Bool -> Analyzer -> IO (ExitCode, String, String)
+runBenchexecValidator a b c d e f g False _ = runBenchexec a b c d e f g False
+runBenchexecValidator cFile a timeout oDir mTag debug logPre _ concreteAnalyzer = do
+  outDir <- validatorSetup cFile a timeout oDir mTag debug logPre concreteAnalyzer
+  let containerName = "portfolio"
+  let args = [(show timeout),
+              "docker",
+              "run",
+              "--privileged",
+              "-v",(outDir++":"++"/home/alpaca_logs"),
+              "-v","/sys/fs/cgroup:/sys/fs/cgroup:rw",
+              containerName]
+  if debug then putStrLn ("Call to docker-benchexec:\n\n "++"timeout "++(show args)) else return ()
+  readProcessWithExitCode "timeout" args ""
+
 runBenchexec :: FilePath -> Analyzer -> Int -> String -> Maybe Int -> Bool -> FilePath -> Bool -> IO (ExitCode, String, String)
 runBenchexec cFile a timeout oDir mTag debug logPre True = do
   currDir <- getCurrentDirectory
   baseDir <- getAnalyzerDir
-  let aDir = analysisDir a
   let pre = absolutePrefix logPre currDir
   let outDir = absoluteOutDir pre oDir
   let progPath = absoluteFullFile pre cFile
   let uniquePath = programWithinToolDir progPath a
-  copyFile progPath uniquePath
+  copyNonvalidatorFile a progPath uniquePath
   let fName = takeFileName cFile
   let t = show $ analysisTool a
   let containerFile = "/home/alpaca_logs/"++fName++"."++t++".c"
@@ -355,7 +388,7 @@ parseResult res a p time mTag debug logPre dTool dock = do
   let summary = getResultSummary res
   case summary of
     TrueResult -> do 
-      w <- tryToGatherWitness path -- for Vicuna
+      _ <- tryToGatherWitness path -- for Vicuna
       removeArtifacts path
       return $ validateResult a time
     FalseResult -> parseWitness a p time mTag debug logPre dTool dock
@@ -398,18 +431,19 @@ tryToGatherWitness dir = do
           return (Just newHandle)
         else do return Nothing
 
+normalizedWitnessName :: FilePath -> FilePath -> Bool -> FilePath
+normalizedWitnessName _ _ True = "/home/alpaca_logs/witness.graphml"
+normalizedWitnessName pre w _ = pre ++ "/" ++ w
+
 normalizeWitness :: Maybe FilePath -> Program -> Analyzer -> Maybe Int -> Bool -> FilePath -> DseTool -> Bool -> IO (Maybe FilePath)
 normalizeWitness Nothing _ _ _ _ _ _ _ = return Nothing
 normalizeWitness f _ (Analyzer _ _ _ _ _ _ BranchDirectives _ _) _ _ _ _ _ = return f
 normalizeWitness f _ _ _ _ _ CpaSymExec _ = return f
 normalizeWitness (Just w) p a mTag debug logPre _ dock = do
-  if dock
-    then error "witness validation within docker container not set up for doppios yet"
-    else return ()
   currDir <- getCurrentDirectory
   let pre = absolutePrefix logPre currDir
   let witness = pre ++ "/" ++ w
-  witnessValidator <- cpaValidator witness
+  witnessValidator <- cpaValidator witness (normalizedWitnessName pre w dock)
   _ <- executeValidator p witnessValidator a mTag debug logPre dock
   let validatorDir = pre ++ "/" ++ (deriveOutputDir p a mTag) ++ "/validation"
   tryToGatherWitness validatorDir
@@ -424,8 +458,8 @@ transformWrapAround w = do
   -}
   callProcess "/usr/bin/sed" ["-i","s/==2147483648/==-2147483648/",w]
 
-cpaValidator :: FilePath -> IO Analyzer
-cpaValidator witness = do
+cpaValidator :: FilePath -> FilePath -> IO Analyzer
+cpaValidator witness witnessXmlName = do
   transformWrapAround witness
   portfolioDir <- getPortfolioDir
   return $ Analyzer {
@@ -434,7 +468,7 @@ cpaValidator witness = do
     analysisDir = portfolioDir ++ "CPA_Seq",
     analysisOptions = [
       ("-witnessValidation", Nothing),
-      ("-witness", Just witness),
+      ("-witness", Just witnessXmlName),
       ("-setprop", Just "cfa.allowBranchSwapping=false"),
       ("-setprop", Just "cpa.arg.witness.exportSourcecode=true")],
     safeOverapproximation = True,
@@ -795,7 +829,7 @@ programWithinToolDir p a =
 
 checkAnalysisWitness :: DseTool -> DebugMode -> Bool -> FilePath -> AnalysisWitness -> IO PieceOfEvidence
 checkAnalysisWitness _ _ _ _ w@(AnalysisWitness _ _ _ True _ _ _) = return (LegitimateEvidence w emptySubspace 0)
-checkAnalysisWitness CpaSymExec d _ _ witness@(AnalysisWitness tool progPath wPath _ _ _ _) = do
+checkAnalysisWitness CpaSymExec d _ _ witness@(AnalysisWitness _ _ wPath _ _ _ _) = do
   let witness' = witness
   -- the following hack is to remove docker absolute paths written by Ultimate* tools
   -- that cause CPA-SymExec to fail when replaying their witness

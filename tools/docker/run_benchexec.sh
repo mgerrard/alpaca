@@ -6,6 +6,9 @@ MOUNTED_DIR=/home/alpaca_logs
 XML_FILE=( $MOUNTED_DIR/*.xml )
 # 2. infer the $TOOL from the $XML_FILE
 TOOL=`basename $XML_FILE .xml`
+if [ $TOOL == "CPA_Validator" ]; then
+  TOOL="CPA_Seq"
+fi
 # 3. go to that $TOOL's directory
 cd $TOOL
 # 4. run benchexec from the $XML_FILE
