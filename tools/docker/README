@@ -1,0 +1,10 @@
+In case you need to debug within the container, and have some
+files in a current directory to test out:
+
+1. Comment out the last line in Dockerfile and rebuild
+by running: 
+ sudo docker build -t portfolio .
+
+2. Drop into the container by running:
+ docker run --privileged -it -v ${PWD}:/home/alpaca_logs \
+   -v /sys/fs/cgroup:/sys/fs/cgroup:rw portfolio /bin/bash
