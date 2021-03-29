@@ -8,10 +8,12 @@ import CscTypes (Property (..))
 
 data AnalysisResult = FalseResult | TrueResult | UnknownResult deriving (Show, Eq)
 
+falseFound :: String -> Bool
+falseFound s = isInfixOf " false(unreach-call) " s || isInfixOf " false(valid-deref) " s || isInfixOf " false(valid-free) " s || isInfixOf " false(valid-memtrack) " s || isInfixOf " false(no-overflow) " s
+
 getResultSummary :: String -> AnalysisResult
 getResultSummary output =
-  let falseFound = isInfixOf " false(unreach-call) "
-      trueFound = isInfixOf " true "
+  let trueFound = isInfixOf " true "
   in
     if falseFound output
       then FalseResult

@@ -359,8 +359,13 @@ setupRunConfiguration tag = do
   debugMode <- getDebugMode; exitStrat <- getExitStrategy;
   bValid <- shouldBlockValid; parallelism <- getParallelism
   logPre <- getLogPrefix; exitF <- getExitSummaryFile; dTool <- getDseTool
-  dockerFlag <- getDockerFlag; prp <- getProp
-  return (RunConfiguration parallelism debugMode tag exitStrat bValid logPre exitF dTool dockerFlag prp)
+  dockerFlag <- getDockerFlag; prp <- getProp; isMinAca <- getIsMinAca
+  return (RunConfiguration parallelism debugMode tag exitStrat bValid logPre exitF dTool dockerFlag prp isMinAca)
+
+getIsMinAca :: AcaComputation Bool
+getIsMinAca = do
+  st <- get 
+  return $ minusAca st
 
 getDockerFlag :: AcaComputation Bool
 getDockerFlag = do

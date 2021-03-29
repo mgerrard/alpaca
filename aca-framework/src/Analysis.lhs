@@ -147,7 +147,8 @@ exploreSubspace program csc = do
   
   let newResults = filter (isNewEvidence csc) results
   st <- get
-  let shouldStop = (minusAca st) || (stopEarly st)
+
+  let shouldStop = stopEarly st
 
   if shouldStop
     then do

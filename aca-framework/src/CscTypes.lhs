@@ -176,7 +176,8 @@ data RunConfiguration = RunConfiguration {
   runExitFile :: FilePath,
   runDseTool :: DseTool,
   runDocker :: Bool,
-  runPropFile :: Property
+  runPropFile :: Property,
+  runIsMinAca :: Bool
   }
 
 data DebugMode =

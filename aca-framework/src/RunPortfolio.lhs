@@ -16,6 +16,7 @@ import System.FilePath.Find
 import System.Directory
 import System.Process
 import System.Exit
+import System.Posix.Process
 import Data.Maybe
 import Data.List
 import Data.Time
@@ -32,14 +33,14 @@ import Reading
 type Thread = Async (Maybe AnalysisWitness)
 
 runPortfolio :: Program -> Portfolio -> Csc -> RunConfiguration -> IO EvidenceCollection
-runPortfolio prog pfolio csc (RunConfiguration InParallel d tag exitStrat bValid logPre exitFile dTool dock prp) = do
+runPortfolio prog pfolio csc (RunConfiguration InParallel d tag exitStrat bValid logPre exitFile dTool dock prp isMinAca) = do
   {- update log : track total analysis runtime -}
-  threads <- launchPortfolio prog d tag logPre exitFile dTool dock prp pfolio
+  threads <- launchPortfolio prog d tag logPre exitFile dTool dock prp isMinAca pfolio
   results <- pollUntilDone threads pfolio dTool exitStrat csc d bValid exitFile
   mapM_ cancel threads
   return results
-runPortfolio prog pfolio csc (RunConfiguration InSequence d tag _ bValid logPre exitFile dTool dock prp) = do
-  maybeWitnesses <- mapM (runAnalyzer prog d tag logPre exitFile dTool dock prp) pfolio
+runPortfolio prog pfolio csc (RunConfiguration InSequence d tag _ bValid logPre exitFile dTool dock prp isMinAca) = do
+  maybeWitnesses <- mapM (runAnalyzer prog d tag logPre exitFile dTool dock prp isMinAca) pfolio
   let witnesses = catMaybes maybeWitnesses
   maybeEvidence <- mapM (verifyWitness csc dTool d bValid exitFile) witnesses
   let results = catMaybes maybeEvidence
@@ -56,8 +57,8 @@ verifyWitness csc dTool debug bValid exitFile witness = do
         then return $ (Just newlyClassified)
         else return $ Nothing
         
-launchPortfolio :: Program -> DebugMode -> Maybe Int -> FilePath -> FilePath -> DseTool -> Bool -> Property -> Portfolio -> IO [Thread]
-launchPortfolio prog d tag logPre ef dTool dock prp pfolio  = mapM (async . (runAnalyzer prog d tag logPre ef dTool dock prp)) pfolio
+launchPortfolio :: Program -> DebugMode -> Maybe Int -> FilePath -> FilePath -> DseTool -> Bool -> Property -> Bool -> Portfolio -> IO [Thread]
+launchPortfolio prog d tag logPre ef dTool dock prp isMinAca pfolio  = mapM (async . (runAnalyzer prog d tag logPre ef dTool dock prp isMinAca)) pfolio
 
 pollUntilDone :: [Thread] -> Portfolio -> DseTool -> ExitStrategy -> Csc -> DebugMode -> Bool -> FilePath -> IO EvidenceCollection
 pollUntilDone threads _ dTool strategy csc debug bValid exitFile = do
@@ -146,8 +147,8 @@ launchSeahorn cFile a t oDir _ logPre = do
   (_, stdOut, _) <- readProcessWithExitCode "timeout" args ""
   return stdOut
 
-runAnalyzer :: Program -> DebugMode -> Maybe Int -> FilePath -> FilePath -> DseTool -> Bool -> Property -> Analyzer -> IO (Maybe AnalysisWitness)
-runAnalyzer p d mTag logPre _ dTool dock prp a@(Analyzer Seahorn _ _ _ _ _ _ _ _) = do
+runAnalyzer :: Program -> DebugMode -> Maybe Int -> FilePath -> FilePath -> DseTool -> Bool -> Property -> Bool -> Analyzer -> IO (Maybe AnalysisWitness)
+runAnalyzer p d mTag logPre _ dTool dock prp isMinAca a@(Analyzer Seahorn _ _ _ _ _ _ _ _) = do
   let outputDir = deriveOutputDir p a mTag
   createDirectoryIfMissing True outputDir
   let cFile = sourcePath p
@@ -163,17 +164,17 @@ runAnalyzer p d mTag logPre _ dTool dock prp a@(Analyzer Seahorn _ _ _ _ _ _ _ _
     then do putStrLn rawResult
     else do return ()
 
-  result <- parseResult rawResult a p elapsedTime mTag True logPre dTool dock prp
+  result <- parseResult rawResult a p elapsedTime mTag True logPre dTool dock prp isMinAca
   return result
-runAnalyzer p _ mTag logPre _ dTool dock prp a@(Analyzer CIVL _ _ _ _ _ _ _ _) = do
+runAnalyzer p _ mTag logPre _ dTool dock prp isMinAca a@(Analyzer CIVL _ _ _ _ _ _ _ _) = do
   start <- getCurrentTime
   let t = deriveTimeout a mTag p
   rawResult <- symbolicExecution p t
   end <- getCurrentTime
   let elapsedTime = (realToFrac :: (Real a) => a -> Float) $ diffUTCTime end start
-  result <- parseResult rawResult a p elapsedTime mTag True logPre dTool dock prp
+  result <- parseResult rawResult a p elapsedTime mTag True logPre dTool dock prp isMinAca
   return result
-runAnalyzer p d mTag logPre _ dTool dock prp a = do
+runAnalyzer p d mTag logPre _ dTool dock prp isMinAca a = do
   let t = deriveTimeout a mTag p
   start <- getCurrentTime
   let debug = ((d == Full) || (d == Analyzers))
@@ -188,7 +189,7 @@ runAnalyzer p d mTag logPre _ dTool dock prp a = do
       putStrLn $ "EXIT CODE:\n" ++ (show exitCode)
     else do return ()
 
-  result <- parseResult rawResult a p elapsedTime mTag debug logPre dTool dock prp
+  result <- parseResult rawResult a p elapsedTime mTag debug logPre dTool dock prp isMinAca
   if debug then do putStrLn $ "\n***\nAnalysis result for " ++ (show a) ++ ": " ++ (show result) ++ "\n***\n" else do return ()
   return result
 
@@ -372,18 +373,18 @@ safeResult a t = AnalysisWitness {
       analysisTime=t,
       parsingTime=0}
                
-parseResult :: String -> Analyzer -> Program -> Float -> Maybe Int -> Bool -> FilePath -> DseTool -> Bool -> Property -> IO (Maybe AnalysisWitness)
-parseResult stdout a@(Analyzer Seahorn _ _ _ _ _ _ _ _) _ time _ _ _ _ _ _ = do
+parseResult :: String -> Analyzer -> Program -> Float -> Maybe Int -> Bool -> FilePath -> DseTool -> Bool -> Property -> Bool -> IO (Maybe AnalysisWitness)
+parseResult stdout a@(Analyzer Seahorn _ _ _ _ _ _ _ _) _ time _ _ _ _ _ _ _ = do
   let lastLine = last $ lines stdout
   if "unsat" `isInfixOf` lastLine
     then return $ (Just (safeResult a time))
     else return Nothing
-parseResult res a@(Analyzer CIVL _ _ _ _ _ _ _ _) p time mTag debug logPre dTool dock prp = do
+parseResult res a@(Analyzer CIVL _ _ _ _ _ _ _ _) p time mTag debug logPre dTool dock prp _ = do
   let summary = getCivlResultSummary res
   case summary of
     FalseResult -> parseWitness a p time mTag debug logPre dTool dock prp
     _ -> do return Nothing
-parseResult res a p time mTag debug logPre dTool dock prp = do
+parseResult res a p time mTag debug logPre dTool dock prp False = do
   let path = deriveOutputDir p a mTag
   let summary = getResultSummary res
   case summary of
@@ -393,6 +394,20 @@ parseResult res a p time mTag debug logPre dTool dock prp = do
       return $ validateResult a time
     FalseResult -> parseWitness a p time mTag debug logPre dTool dock prp
     _ -> do removeArtifacts path; return Nothing
+-- this case is for Vicuna
+parseResult res a p time mTag debug logPre dTool dock prp True = do
+  let path = deriveOutputDir p a mTag
+  let summary = getResultSummary res
+  _ <- tryToGatherWitness path -- for Vicuna
+  let r = vicunaData summary a prp
+  putStrLn $ show r
+  exitImmediately ExitSuccess
+  return Nothing
+
+vicunaData :: AnalysisResult -> Analyzer -> Property -> VicunaData
+vicunaData res a prp = VicunaData res a prp
+
+data VicunaData = VicunaData AnalysisResult Analyzer Property deriving (Show)
 
 getCivlResultSummary :: String -> AnalysisResult
 getCivlResultSummary output =
@@ -401,7 +416,6 @@ getCivlResultSummary output =
     if falseFound output
       then FalseResult
       else UnknownResult
-  
 
 validateResult :: Analyzer -> Float -> Maybe AnalysisWitness
 validateResult a t
