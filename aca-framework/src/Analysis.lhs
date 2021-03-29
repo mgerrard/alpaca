@@ -25,6 +25,7 @@ import Configuration
 import RunPortfolio
 import Data.Time
 import Characterize
+import LocalPaths
 
 aca :: Program -> Csc -> AcaComputation Csc
 aca program csc = do
@@ -285,10 +286,17 @@ checkDockerPermissions True = do
     then error "user must be root to run docker"
     else return ()
 
+deriveProperty :: String -> Property
+deriveProperty "reachSafety" = ReachSafety
+deriveProperty "memSafety" = MemSafety
+deriveProperty "overflow" = OverflowSafety
+deriveProperty p = error $ "sorry, I don't know the property: "++(show p)
+
 runAca :: Configuration -> IO Csc
-runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPre targetFunc partBound merLen genStrat cppFlags iTimeout exclusion dseT mkCud chCud dockerFlag minusAcaFlag) = do
+runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPre targetFunc partBound merLen genStrat cppFlags iTimeout exclusion dseT mkCud chCud dockerFlag minusAcaFlag prp) = do
   checkDockerPermissions dockerFlag
   checkFileExists program
+  let prop = deriveProperty prp
   setLibraryEnvironmentVariable
   now <- getCurrentTime
   initProgram <- initialProgram program "" "main" logPre targetFunc cppFlags (dseChoice dseT) chCud minusAcaFlag
@@ -342,6 +350,7 @@ runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPr
     , chewCud        = chCud
     , dockerPort     = dockerFlag
     , minusAca       = minusAcaFlag
+    , stateProperty  = prop
     }
 
 dseChoice :: String -> DseTool

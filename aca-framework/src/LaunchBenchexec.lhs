@@ -4,6 +4,7 @@ module LaunchBenchexec where
 import Data.List (isInfixOf)
 import Data.List.Split (splitOn)
 import Portfolio
+import CscTypes (Property (..))
 
 data AnalysisResult = FalseResult | TrueResult | UnknownResult deriving (Show, Eq)
 
@@ -37,21 +38,26 @@ makeOptions tool = concat $ map makeOption (analysisOptions tool)
 xmlFooter :: String
 xmlFooter = "</benchmark>"
 
-taskToRun :: FilePath -> FilePath -> Bool -> String
-taskToRun file aDir dock =
+taskToRun :: FilePath -> FilePath -> Bool -> Property -> String
+taskToRun file aDir dock prp =
   let fileName = last $ splitOn "/" file
-      propertyFile = propFile aDir dock
+      propertyFile = propFilePath aDir dock prp
   in
     "<tasks name=\""++fileName++"\">\n\
     \<include>"++file++"</include>\n\
     \<propertyfile>"++propertyFile++"</propertyfile>\n\
     \</tasks>\n"
 
-propFile :: FilePath -> Bool -> String
-propFile aDir False = aDir ++ "/PropertyUnreachCall.prp"
-propFile _ True = "/PropertyUnreachCall.prp"
+propFilePath :: FilePath -> Bool -> Property -> String
+propFilePath aDir False prp = aDir++"/"++(propFile prp)
+propFilePath _ True prp = "/"++(propFile prp)
 
-constructXML :: Analyzer -> FilePath -> FilePath -> Bool -> String
-constructXML a f d dock = (xmlHeader a) ++ (makeOptions a) ++ (taskToRun f d dock) ++ xmlFooter
+propFile :: Property -> String
+propFile ReachSafety = "PropertyUnreachCall.prp"
+propFile MemSafety = "MemSafety.prp"
+propFile OverflowSafety = "Overflow.prp"
+
+constructXML :: Analyzer -> FilePath -> FilePath -> Bool -> Property -> String
+constructXML a f d dock prp = (xmlHeader a) ++ (makeOptions a) ++ (taskToRun f d dock prp) ++ xmlFooter
 
 \end{code}

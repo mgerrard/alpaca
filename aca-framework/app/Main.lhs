@@ -139,4 +139,10 @@ configuration = Configuration
   <*> switch
       (  long "minus-aca"
       <> help "Run portfolio once on uninstrumented file" )
+  <*> strOption
+      (  long "property"
+      <> showDefault
+      <> metavar "PRP"
+      <> value "reachSafety"
+      <> help "(reachSafety | memSafety | overflow)" )
 \end{code}

@@ -24,4 +24,6 @@ RUN apt update && apt install -y openjdk-8-jre
 RUN mkdir /home/benchexec
 RUN apt update && apt install -y perl
 COPY ./run_benchexec.sh /
+COPY ./Overflow.prp /
+COPY ./MemSafety.prp /
 ENTRYPOINT ["/run_benchexec.sh"]

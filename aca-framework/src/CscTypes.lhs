@@ -19,6 +19,8 @@ data SearchFlag = Terminate | Search deriving (Show, Read, Eq)
 type CountMap = Map.Map Int Int
 type TypeMap = Map.Map Int TypeString
 
+data Property = ReachSafety | MemSafety | OverflowSafety deriving (Show, Read, Eq)
+
 data CscPartition = CscPartition {
   upperBound :: UpperBound,
   lowerBound :: LowerBound,
@@ -173,7 +175,8 @@ data RunConfiguration = RunConfiguration {
   runLogPrefix :: String,
   runExitFile :: FilePath,
   runDseTool :: DseTool,
-  runDocker :: Bool
+  runDocker :: Bool,
+  runPropFile :: Property
   }
 
 data DebugMode =

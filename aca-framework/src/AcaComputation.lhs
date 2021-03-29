@@ -38,7 +38,8 @@ data AcaState = AcaState {
   makeCud        :: Bool,
   chewCud        :: String,
   dockerPort     :: Bool,
-  minusAca       :: Bool
+  minusAca       :: Bool,
+  stateProperty  :: Property
   } deriving (Show)
 
 data Program = Program {
@@ -358,8 +359,8 @@ setupRunConfiguration tag = do
   debugMode <- getDebugMode; exitStrat <- getExitStrategy;
   bValid <- shouldBlockValid; parallelism <- getParallelism
   logPre <- getLogPrefix; exitF <- getExitSummaryFile; dTool <- getDseTool
-  dockerFlag <- getDockerFlag
-  return (RunConfiguration parallelism debugMode tag exitStrat bValid logPre exitF dTool dockerFlag)
+  dockerFlag <- getDockerFlag; prp <- getProp
+  return (RunConfiguration parallelism debugMode tag exitStrat bValid logPre exitF dTool dockerFlag prp)
 
 getDockerFlag :: AcaComputation Bool
 getDockerFlag = do
@@ -505,6 +506,11 @@ getRunningLog :: AcaComputation FilePath
 getRunningLog = do
   st <- get
   return (runningLog st)
+
+getProp :: AcaComputation Property
+getProp = do
+  st <- get
+  return (stateProperty st)
 
 updateLog :: String -> AcaComputation ()
 updateLog s = do
