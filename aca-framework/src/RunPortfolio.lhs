@@ -401,8 +401,9 @@ parseResult res a p time mTag debug logPre dTool dock prp True = do
   _ <- tryToGatherWitness path -- for Vicuna
   let r = vicunaData summary a prp
   putStrLn $ show r
-  exitImmediately ExitSuccess
-  return Nothing
+  case summary of 
+    UnknownResult -> return Nothing
+    _ -> do exitImmediately ExitSuccess; return Nothing
 
 vicunaData :: AnalysisResult -> Analyzer -> Property -> VicunaData
 vicunaData res a prp = VicunaData res a prp
