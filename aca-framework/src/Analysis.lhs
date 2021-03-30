@@ -12,6 +12,8 @@ import System.Posix.User
 import System.Directory
 import System.Process
 import System.Environment (getEnv, setEnv)
+import System.Exit
+import System.Posix.Process
 import Data.String.Utils (strip)
 import Transformer
 import CscTypes
@@ -136,6 +138,13 @@ exploreSubspace program csc = do
                   (writeExitSummary exitFile "Exploring subspace")
   endPossibleTime
   end <- io $ getCurrentTime
+
+  {- Stop if just dumping Vicuna data -}
+  st <- get
+  if (minusAca st)
+    then io $ exitImmediately ExitSuccess
+    else return ()
+
   let searchTime = formatFloatN ((realToFrac $ diffUTCTime end start)::Float) 4
   {- update log given the results -}
   let r = makeResultLog results
@@ -146,8 +155,6 @@ exploreSubspace program csc = do
   io $ putStrLn summary
   
   let newResults = filter (isNewEvidence csc) results
-  st <- get
-
   let shouldStop = stopEarly st
 
   if shouldStop
