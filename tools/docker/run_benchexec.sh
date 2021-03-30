@@ -5,7 +5,7 @@ MOUNTED_DIR=/home/alpaca_logs
 # 1. find the $XML_FILE at $MOUNTED_DIR
 XML_FILE=( $MOUNTED_DIR/*.xml )
 # 2. infer the $TOOL from the $XML_FILE
-TOOL=`basename $XML_FILE .xml`
+TOOL=$(basename "$XML_FILE" | cut -d. -f1)
 if [ $TOOL == "CPA_Validator" ]; then
   TOOL="CPA_Seq"
 fi
