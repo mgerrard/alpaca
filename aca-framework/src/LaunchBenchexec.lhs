@@ -4,7 +4,6 @@ module LaunchBenchexec where
 import Data.List (isInfixOf)
 import Data.List.Split (splitOn)
 import Portfolio
-import CscTypes (Property (..))
 
 data AnalysisResult = FalseResult | TrueResult | UnknownResult deriving (Show, Eq)
 

@@ -322,7 +322,7 @@ runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPr
   exitFile <- writePathToSummaryFile program prefix targetFunc
   writeConfigurationFile c prefix
 
-  initPortfolio <- portfolio selection exclusion timeout gTimeout iTimeout
+  initPortfolio <- portfolio selection prop exclusion timeout gTimeout iTimeout
   let initStats = Statistics 0 now 0 now 0 now 0 now 0 now 0 now 0 0 0 0 0 0
   putStrLn $ "* Running ALPACA on "++program++"\n"
 

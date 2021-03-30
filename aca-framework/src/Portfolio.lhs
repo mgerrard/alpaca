@@ -7,6 +7,7 @@ import Data.List (find, nub, (\\))
 import Data.Maybe (catMaybes)
 
 type Portfolio = [Analyzer]
+data Property = ReachSafety | MemSafety | OverflowSafety deriving (Show, Read, Eq)
 
 getAnalyzerDir :: IO String
 getAnalyzerDir = do
@@ -67,21 +68,21 @@ type Attribute = String
 type Value = String
 type Option = (Attribute, Maybe Value)
 
-portfolio :: String -> String -> Int -> Int -> Int -> IO Portfolio
-portfolio pFilter exclusions timeout gTimeout iTimeout = do
+portfolio :: String -> Property ->String -> Int -> Int -> Int -> IO Portfolio
+portfolio pFilter prop exclusions timeout gTimeout iTimeout = do
   full <- fullPortfolio timeout gTimeout iTimeout
-  let subset = nub $ portfolioSubset pFilter exclusions full
+  let subset = nub $ portfolioSubset pFilter exclusions full prop
   return subset
 
-portfolioSubset :: String -> String -> Portfolio -> Portfolio
-portfolioSubset "all" "" p = filter wheatFromChaff p
-portfolioSubset "all" exclusions p =
-  let wheat = filter wheatFromChaff p
+portfolioSubset :: String -> String -> Portfolio -> Property -> Portfolio
+portfolioSubset "all" "" p prop = filter wheatFromChaff (sheepFromGoat prop p)
+portfolioSubset "all" exclusions p prop =
+  let wheat = filter wheatFromChaff (sheepFromGoat prop p)
       stringExclusions = splitOn "," exclusions
       mExclusions = map (correspondingTool p) stringExclusions
       pExclusions = catMaybes mExclusions
   in wheat \\ pExclusions
-portfolioSubset pFilter exclusions p =
+portfolioSubset pFilter exclusions p _ =
   let stringSelections = splitOn "," pFilter
       stringExclusions = splitOn "," exclusions
       stringSelections' = stringSelections \\ stringExclusions
@@ -116,6 +117,24 @@ wheatFromChaff (Analyzer Symbiotic _ _ _ _ _ _ _ _) = True
 wheatFromChaff (Analyzer CBMC _ _ _ _ _ _ _ _) = True
 wheatFromChaff (Analyzer Pesco _ _ _ _ _ _ _ _) = True
 wheatFromChaff _ = False
+
+{- Used to determine which tools do MemSafety and OverflowSafety -}
+sheepFromGoatHelper :: Property -> Analyzer -> Bool
+sheepFromGoatHelper _ (Analyzer CPA_Seq _ _ _ _ _ _ _ _) = True
+sheepFromGoatHelper _ (Analyzer CPA_BAM_BnB _ _ _ _ _ _ _ _) = False
+sheepFromGoatHelper _ (Analyzer UAutomizer _ _ _ _ _ _ _ _) = True
+sheepFromGoatHelper _ (Analyzer UTaipan _ _ _ _ _ _ _ _) = True
+sheepFromGoatHelper _ (Analyzer VeriAbs _ _ _ _ _ _ _ _) = True
+sheepFromGoatHelper _ (Analyzer ESBMC _ _ _ _ _ _ _ _) = True
+sheepFromGoatHelper _ (Analyzer Symbiotic _ _ _ _ _ _ _ _) = True
+sheepFromGoatHelper _ (Analyzer CBMC _ _ _ _ _ _ _ _) = True
+sheepFromGoatHelper _ (Analyzer Pesco _ _ _ _ _ _ _ _) = False
+sheepFromGoatHelper _ _ = False
+
+sheepFromGoat :: Property -> Portfolio -> Portfolio
+sheepFromGoat ReachSafety l = l
+sheepFromGoat MemSafety l = filter (sheepFromGoatHelper MemSafety) l
+sheepFromGoat OverflowSafety l = filter (sheepFromGoatHelper OverflowSafety) l
 
 fullPortfolio :: Int -> Int -> Int -> IO Portfolio
 fullPortfolio timeout gTimeout iTimeout = do
