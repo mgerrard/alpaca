@@ -127,7 +127,8 @@ sheepFromGoatHelper _ (Analyzer UTaipan _ _ _ _ _ _ _ _) = True
 sheepFromGoatHelper _ (Analyzer VeriAbs _ _ _ _ _ _ _ _) = False
 sheepFromGoatHelper _ (Analyzer ESBMC _ _ _ _ _ _ _ _) = True
 sheepFromGoatHelper _ (Analyzer Symbiotic _ _ _ _ _ _ _ _) = True
-sheepFromGoatHelper _ (Analyzer CBMC _ _ _ _ _ _ _ _) = True
+sheepFromGoatHelper OverflowSafety (Analyzer CBMC _ _ _ _ _ _ _ _) = True
+sheepFromGoatHelper _ (Analyzer CBMC _ _ _ _ _ _ _ _) = False
 sheepFromGoatHelper _ (Analyzer Pesco _ _ _ _ _ _ _ _) = False
 sheepFromGoatHelper _ _ = False
 
