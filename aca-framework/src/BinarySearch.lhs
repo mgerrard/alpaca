@@ -294,7 +294,7 @@ isNewGenEvidence _ ((LegitimateEvidence (AnalysisWitness _ _ _ True _ _ _) _ _),
 isNewGenEvidence _ ((SpuriousEvidence _ _ _), _, _, _) = False
 isNewGenEvidence csc (e, _, _, _) =
   let subspace = (conjunction . characterization) e
-      lowerBounds = concat $ map lowerBound (disjointPartitions csc)
+      lowerBounds = concat $ map (lower . lowerBound) (disjointPartitions csc)
   in not $ subspace `elem` lowerBounds
 
 isSafeOrFailing :: PieceOfEvidence -> Bool
@@ -471,10 +471,13 @@ tentativeWiden csc generalClause = do
       safeGeneralClause = UpperBound generalClause excludedFormulae
       
       {- Collect the children of the subsumed -}
-        --subsumptions = concat $ map (findLowerBound csc) subsumed
-      subsumptions = subsumed
+      subsumptions = map (findLowerBound csc) subsumed
+      lbConjs = concat $ map lower subsumptions
+      nSlices = sum $ map nSliced subsumptions
+      subsumptions' = LowerBound lbConjs nSlices
+
       assumes = concat $ map (findAssumptions csc) subsumed
-      partition = CscPartition safeGeneralClause subsumptions assumes
+      partition = CscPartition safeGeneralClause subsumptions' assumes
       csc' = csc `removeSubsumed` subsumed
       csc'' = csc' `addPartition` partition
   return csc''

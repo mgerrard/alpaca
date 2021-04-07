@@ -75,15 +75,19 @@ widenWorker csc blockingClause = do
       theBlockingClause = UpperBound blockingClause excludedFormulae
       
       {- Collect the children of the subsumed -}
-      subsumptions = concat $ map (findLowerBound csc) subsumed
+      subsumptions = map (findLowerBound csc) subsumed
+      lbConjs = concat $ map lower subsumptions
+      nSlices = sum $ map nSliced subsumptions
+      subsumptions' = LowerBound lbConjs nSlices
+
       assumes = concat $ map (findAssumptions csc) subsumed
-      partition = makeNewPartition theBlockingClause subsumptions assumes
+      partition = makeNewPartition theBlockingClause subsumptions' assumes
       csc' = csc `removeSubsumed` subsumed
       csc'' = csc' `addPartition` partition
   return csc''
 
-makeNewPartition :: UpperBound -> [Conjunction] -> [Conjunction] -> CscPartition
-makeNewPartition c [] a = CscPartition c [(upper c)] a
+makeNewPartition :: UpperBound -> LowerBound -> [Conjunction] -> CscPartition
+makeNewPartition c (LowerBound [] n) a = CscPartition c (LowerBound [(upper c)] n) a
 makeNewPartition c subsumptions a = CscPartition c subsumptions a
 
 implies :: Conjunction -> (Int, Conjunction) -> AcaComputation (Conjunction, ThmResult)
@@ -106,14 +110,14 @@ intersects gen (_, up) = do
   return (up, result)
 
 checkBoundSatisfiability :: PieceOfEvidence -> AcaComputation ()
-checkBoundSatisfiability (LegitimateEvidence (AnalysisWitness _ _ _ False _ _ _) (Subspace cs _ _ _) _) = do
+checkBoundSatisfiability (LegitimateEvidence (AnalysisWitness _ _ _ False _ _ _) (Subspace cs _ _ _ _) _) = do
   let c' = makeConjunctionExpr $ map (\(Conjunct c)->c) cs
   let names = nub $ map extractVarName $ extractCIndexes c'
   _ <- io $ isSat c' names
   return ()
 checkBoundSatisfiability _ = return ()
 
-findLowerBound :: Csc -> Conjunction -> [Conjunction]
+findLowerBound :: Csc -> Conjunction -> LowerBound
 findLowerBound csc c =
   let partitions = disjointPartitions csc
       (Just p) = find (\part -> c == (upperConjunction part)) partitions

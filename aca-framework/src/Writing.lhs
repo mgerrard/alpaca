@@ -61,7 +61,7 @@ showUpperBound p =
 
 showLowerBound :: CscPartition -> String
 showLowerBound p =
-  let ls = lowerBound p
+  let ls = lower $ lowerBound p
       indent = "      "
   in concat $ map (\c -> indent ++ (showMinimalConjunction c) ++ "\n") ls
 

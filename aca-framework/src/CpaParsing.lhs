@@ -232,7 +232,7 @@ extractCpaSubspace ss = do
   cs <- mapM parseToExpr ss'
   let cs' = map Conjunct cs
       as = [] -- no assumptions right now
-      subspace = Subspace cs' as countMap typeMap
+      subspace = Subspace cs' as countMap typeMap 0
   return (Just subspace)
 
 symExprToString :: SymExpr -> String

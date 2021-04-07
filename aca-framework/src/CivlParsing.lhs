@@ -48,7 +48,9 @@ parseCivlOutput civlOut =
       a''   = inferEquality a'
       {- Normalize conjunction by sorting conjuncts lexicographically -}
       a'''   = sortBy (\(RawConjunct c1) (RawConjunct c2) -> compare c1 c2) a''
-  in PreSubspace conj''' a''' countMap typeMap
+      rConj = RawConjunction conj''' (numberSliced civlOut)
+      aConj = RawConjunction a''' 0
+  in PreSubspace rConj aConj countMap typeMap
 
 {- A brittle hack -}
 inferEquality :: [RawConjunct] -> [RawConjunct]

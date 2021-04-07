@@ -5,7 +5,7 @@ import AcaComputation
 import CscTypes
 import Solver
 import Data.Maybe (catMaybes)
-import Data.List (nubBy, sortBy)
+import Data.List (nubBy, sortBy, nub)
 import Control.Monad.State
 import Control.Monad (when)
 import qualified Data.Map.Strict as Map
@@ -106,10 +106,8 @@ enrichCscWith ss = do
     then updateCscToTriviallyFalse
     else do
       csc@(Csc partitions _ _ s f) <- getCsc
-      let subs = reverse $ sortBy (\a b -> (length $ conjunction a) `compare` (length $ conjunction b)) ss
-          cs = minimizeConjunctions $ map conjunction subs
-          as = map sAssumptions subs
-          exactPartitions = map (\(c,a) -> (CscPartition (UpperBound c []) [c] [a])) (zip cs as)
+      let subs = nub ss
+          exactPartitions = map (\(Subspace c a _ _ n) -> (CscPartition (UpperBound c []) (LowerBound [c] n) [a])) subs
           partitions' = partitions ++ exactPartitions
           subspaceMaps = map inputIdCounts subs
           subspaceMap = foldl (Map.unionWith max) Map.empty subspaceMaps
@@ -121,9 +119,6 @@ enrichCscWith ss = do
       st <- get
     
       put $ st { stateCsc = csc' }
-
-minimizeConjunctions :: [Conjunction] -> [Conjunction]
-minimizeConjunctions = nubBy (\x y -> x == y)
 
 widen :: Csc -> GeneralizeResult -> AcaComputation ()
 widen _ (SafetySpace csc') = do

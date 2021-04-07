@@ -29,15 +29,18 @@ data UpperBound = UpperBound {
   upper :: Conjunction,
   upperNegations :: [Conjunction]
   } deriving (Show, Eq)
-type LowerBound = [Conjunction]
+data LowerBound = LowerBound {
+  lower :: [Conjunction],
+  nSliced :: Int 
+  } deriving (Show, Eq)
 
 equivalentPartitionSize :: Csc -> Int
 equivalentPartitionSize (Csc parts _ _ _ _) =
   (length . filter isEquivalentPartition) parts
 
 isEquivalentPartition :: CscPartition -> Bool
-isEquivalentPartition (CscPartition _ [] _) = False
-isEquivalentPartition (CscPartition up lower _) = (head lower) == (upper up)
+isEquivalentPartition (CscPartition _ (LowerBound [] _) _) = False
+isEquivalentPartition (CscPartition up lo _) = (head $ lower lo) == (upper up)
 
 gapBetweenBounds :: CscPartition -> Bool
 gapBetweenBounds = not . isEquivalentPartition
@@ -53,7 +56,7 @@ instance Ord Conjunct where
   (Conjunct e1) `compare` (Conjunct e2) =
     (show (pretty e1)) `compare` (show (pretty e2))
 
-type RawConjunction = [RawConjunct]
+data RawConjunction = RawConjunction [RawConjunct] Int deriving (Show, Eq)
 data RawConjunct = RawConjunct String deriving (Show, Eq)
 
 type VariableName = String
@@ -80,8 +83,12 @@ data Subspace = Subspace {
   conjunction :: Conjunction,
   sAssumptions :: Conjunction,
   inputIdCounts :: CountMap,
-  inputIdTypes :: TypeMap
-  } deriving (Show, Eq)
+  inputIdTypes :: TypeMap,
+  nSlice :: Int
+  } deriving (Show)
+
+instance Eq Subspace where
+  (Subspace c1 _ _ _ _) == (Subspace c2 _ _ _ _) = c1 == c2
 
 data InputMapping = InputMapping
   { symbolicInputVar :: String,

@@ -814,12 +814,12 @@ extractSubspace s = do
       return (Just ss)
 
 makeSubspace :: PreSubspace -> IO Subspace
-makeSubspace (PreSubspace rc ac cMap tMap) = do
+makeSubspace (PreSubspace (RawConjunction rc n) (RawConjunction ac _) cMap tMap) = do
   cs <- mapM (\(RawConjunct s)->parseToExpr s) rc
   as <- mapM (\(RawConjunct s)->parseToExpr s) ac
   let cs' = map Conjunct cs
   let as' = map Conjunct as
-  return $ Subspace cs' as' cMap tMap
+  return $ Subspace cs' as' cMap tMap n
 
 type LineNumber = String
 

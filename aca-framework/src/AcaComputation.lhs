@@ -68,7 +68,7 @@ isNewEvidence csc (SpuriousEvidence _ spuriousEvidence _) =
   in (not $ null subspace) && (not $ subspace `elem` (spuriousSpace csc))
 isNewEvidence csc e =
   let subspace = (conjunction . characterization) e
-      lowerBounds = concat $ map lowerBound (disjointPartitions csc)
+      lowerBounds = concat $ map (lower . lowerBound) (disjointPartitions csc)
   in not $ subspace `elem` lowerBounds
 
 isNonspuriousEvidence :: PieceOfEvidence -> Bool
@@ -301,15 +301,9 @@ updateStatistics = do
   put $ st { stateStats = s' }
 
 sumSliceCounts :: Csc -> Int
-sumSliceCounts _ = 0
-{-
-TO REWORK
-
 sumSliceCounts (Csc partitions _ _ _ _) =
-  let lowers = concat $ map lowerBound partitions
-      counts = map numberSlicedAway lowers
-  in foldl (+) 0 counts
--}
+  let sliceList = map (nSliced . lowerBound) partitions
+  in sum sliceList
 
 getStatistics :: AcaComputation Statistics
 getStatistics = do
@@ -434,10 +428,10 @@ makeFalseUpper :: UpperBound
 makeFalseUpper = UpperBound falseConjunction [emptyConjunction]
 
 makeTrueLower :: LowerBound
-makeTrueLower = [trueConjunction]
+makeTrueLower = LowerBound [trueConjunction] 0
 
 makeFalseLower :: LowerBound
-makeFalseLower = [falseConjunction]
+makeFalseLower = LowerBound [falseConjunction] 0
 
 upperBounds :: Csc -> [Conjunction]
 upperBounds csc = map (upper . upperBound) $ disjointPartitions csc
@@ -492,7 +486,7 @@ moveToTop :: AcaComputation ()
 moveToTop = do
   csc <- getCsc
   st <- get
-  let lowerBounds = collectLowerBounds csc
+  let lowerBounds = consolidateLowerBounds csc
       assumes = collectAssumptions csc
       trueUpper = makeTrueUpper
       topMinusLowerBounds = CscPartition trueUpper lowerBounds assumes
@@ -501,8 +495,11 @@ moveToTop = do
   {- update log -}
   return ()
 
-collectLowerBounds :: Csc -> [Conjunction]
-collectLowerBounds csc = concat $ map lowerBound $ disjointPartitions csc
+consolidateLowerBounds :: Csc -> LowerBound
+consolidateLowerBounds csc = 
+  let lbConjs = concat $ map (lower . lowerBound) $ disjointPartitions csc
+      nSlices = sum $ map (nSliced . lowerBound) $ disjointPartitions csc
+  in LowerBound lbConjs nSlices
 
 collectAssumptions :: Csc -> [Conjunction]
 collectAssumptions csc = concat $ map assumptions $ disjointPartitions csc

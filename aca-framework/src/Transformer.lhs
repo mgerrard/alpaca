@@ -340,7 +340,7 @@ assumeUpper ub =
   in [upperA] ++ upperNs
 
 assumeNotLower :: LowerBound -> [CBlockItem]
-assumeNotLower lb = map blockSubspace lb
+assumeNotLower (LowerBound lb _) = map blockSubspace lb
 
 makeBlockingBody :: [CscPartition] -> [Conjunction] -> CStat
 makeBlockingBody partitions validPrefixes =
