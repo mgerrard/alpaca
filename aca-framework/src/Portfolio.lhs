@@ -82,12 +82,7 @@ portfolioSubset "all" exclusions p prop =
       mExclusions = map (correspondingTool p) stringExclusions
       pExclusions = catMaybes mExclusions
   in wheat \\ pExclusions
-portfolioSubset "allDock" exclusions p prop =
-  let wheat = filter dockerSubset p
-      stringExclusions = splitOn "," exclusions
-      mExclusions = map (correspondingTool p) stringExclusions
-      pExclusions = catMaybes mExclusions
-  in wheat \\ pExclusions
+portfolioSubset "allDock" _ p _ = filter dockerSubset p
 portfolioSubset pFilter exclusions p _ =
   let stringSelections = splitOn "," pFilter
       stringExclusions = splitOn "," exclusions
