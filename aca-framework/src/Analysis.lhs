@@ -165,7 +165,21 @@ exploreSubspace program csc = do
            then do
              updateLog $ "no new reachability evidence found after "++searchTime++"s:\n -> generalizing\n\n"
              return NoEvidence
-           else return $ classifyResults newResults
+           else do
+             updateDefiniteTime newResults
+             return $ classifyResults newResults
+
+-- take the max of all definite times, as they were run in parallel
+updateDefiniteTime :: EvidenceCollection -> AcaComputation ()
+updateDefiniteTime ev = do
+  let times = map extractDefiniteTime ev
+      maxTime = maximum times
+  incrDefiniteTime maxTime
+  
+extractDefiniteTime :: PieceOfEvidence -> Float
+extractDefiniteTime (LegitimateEvidence _ _ f) = f
+extractDefiniteTime (SpuriousEvidence _ _ f) = f
+extractDefiniteTime _ = 0.0
 
 classifyResults :: EvidenceCollection -> ExplorationResult
 classifyResults ev = do

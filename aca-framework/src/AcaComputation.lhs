@@ -12,6 +12,7 @@ import Numeric
 import Control.Monad.State
 import Control.Monad.IO.Class (liftIO)
 import qualified Data.Map.Strict as Map
+import GHC.Float
 
 type AcaComputation = StateT AcaState IO
 
@@ -190,6 +191,16 @@ startDefiniteTime = do
   start <- io $ getCurrentTime
   let s' = s { definiteStart = start }
   put $ st { stateStats = s' }
+
+incrDefiniteTime :: Float -> AcaComputation ()
+incrDefiniteTime f = do
+  st <- get
+  let s = stateStats st
+  let additionalTime     = float2Double f
+      accumulatedTime    = definiteTime s
+  let s' = s { definiteTime = (accumulatedTime + additionalTime) }
+  put $ st { stateStats = s' }
+  return ()
 
 endDefiniteTime :: AcaComputation ()
 endDefiniteTime = do

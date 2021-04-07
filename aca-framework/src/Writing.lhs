@@ -125,10 +125,12 @@ getExitStatus csc =
         then "top"
         else "gap"
 
+{- Possible time up to now has included the time running CIVL, so before printing
+   the statistics we subtract the definite time from the possible time.  -}
 getStatisticsString :: Statistics -> Csc -> Int -> String
 getStatisticsString s csc iters =
   " Total      time (s) : "++(show ((round :: (RealFrac a) => a -> Integer) $ totalTime s))++"\n\
-  \ Possible   time (s) : "++(show ((round :: (RealFrac a) => a -> Integer) $ possibleTime s))++"\n\
+  \ Possible   time (s) : "++(show ((round :: (RealFrac a) => a -> Integer) $ ((possibleTime s)-(definiteTime s))))++"\n\
   \ Definite   time (s) : "++(show ((round :: (RealFrac a) => a -> Integer) $ definiteTime s))++"\n\
   \ Generalize time (s) : "++(show ((round :: (RealFrac a) => a -> Integer) $ generalizeTime s))++"\n\
   \ Widening   time (s) : "++(show ((round :: (RealFrac a) => a -> Integer) $ wideningTime s))++"\n\
