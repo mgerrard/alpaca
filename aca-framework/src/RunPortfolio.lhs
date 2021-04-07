@@ -389,7 +389,7 @@ parseResult res a p time mTag debug logPre dTool dock prp False hasReach = do
   let summary = getResultSummary res
   case summary of
     TrueResult -> do
-      if hasReach && ((iteration p)==0)
+      if hasReach && ((iteration p)==1)
         then return Nothing
         else do
           _ <- tryToGatherWitness path
