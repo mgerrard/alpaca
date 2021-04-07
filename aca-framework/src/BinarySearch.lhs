@@ -60,6 +60,7 @@ bestOverapproximators (Analyzer VeriAbs _ _ _ _ _ _ _ _) = True
 bestOverapproximators (Analyzer CPA_BAM_BnB _ _ _ _ _ _ _ _) = True
 bestOverapproximators (Analyzer UAutomizer _ _ _ _ _ _ _ _) = True
 bestOverapproximators (Analyzer CPA_Seq _ _ _ _ _ _ _ _) = True
+bestOverapproximators (Analyzer Seahorn _ _ _ _ _ _ _ _) = True
 bestOverapproximators _ = False
 
 singletonSearch :: GenStrategy -> AcaComputation GeneralizeResult

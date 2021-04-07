@@ -82,6 +82,12 @@ portfolioSubset "all" exclusions p prop =
       mExclusions = map (correspondingTool p) stringExclusions
       pExclusions = catMaybes mExclusions
   in wheat \\ pExclusions
+portfolioSubset "allDock" exclusions p prop =
+  let wheat = filter dockerSubset p
+      stringExclusions = splitOn "," exclusions
+      mExclusions = map (correspondingTool p) stringExclusions
+      pExclusions = catMaybes mExclusions
+  in wheat \\ pExclusions
 portfolioSubset pFilter exclusions p _ =
   let stringSelections = splitOn "," pFilter
       stringExclusions = splitOn "," exclusions
@@ -117,6 +123,21 @@ wheatFromChaff (Analyzer Symbiotic _ _ _ _ _ _ _ _) = True
 wheatFromChaff (Analyzer CBMC _ _ _ _ _ _ _ _) = True
 wheatFromChaff (Analyzer Pesco _ _ _ _ _ _ _ _) = True
 wheatFromChaff _ = False
+
+{- The following are the tools that report a reasonable amount of evidence
+   and can be run in Docker -}
+dockerSubset :: Analyzer -> Bool
+dockerSubset (Analyzer CPA_Seq _ _ _ _ _ _ _ _) = True
+dockerSubset (Analyzer CPA_BAM_BnB _ _ _ _ _ _ _ _) = True
+dockerSubset (Analyzer UAutomizer _ _ _ _ _ _ _ _) = True
+dockerSubset (Analyzer UTaipan _ _ _ _ _ _ _ _) = True
+dockerSubset (Analyzer VeriAbs _ _ _ _ _ _ _ _) = True
+dockerSubset (Analyzer ESBMC _ _ _ _ _ _ _ _) = True
+dockerSubset (Analyzer Symbiotic _ _ _ _ _ _ _ _) = True
+dockerSubset (Analyzer CBMC _ _ _ _ _ _ _ _) = True
+dockerSubset (Analyzer Pesco _ _ _ _ _ _ _ _) = True
+dockerSubset (Analyzer Seahorn _ _ _ _ _ _ _ _) = True
+dockerSubset _ = False
 
 {- Used to determine which tools do MemSafety and OverflowSafety -}
 sheepFromGoatHelper :: Property -> Analyzer -> Bool

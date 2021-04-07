@@ -49,7 +49,7 @@ configuration = Configuration
       <> showDefault
       <> metavar "FILTER"
       <> value "all"
-      <> help "(all | cpaSeq | uAutomizer | veriAbs | pesco | symbiotic | esbmc | twoLs | cbmc | uTaipan | uKojak | pinaka | (comma-sep. string of tools))")
+      <> help "(all | allDock | cpaSeq | uAutomizer | veriAbs | pesco | symbiotic | esbmc | twoLs | cbmc | uTaipan | uKojak | pinaka | (comma-sep. string of tools))")
   <*> option auto
       (  long "generalize-timeout"
       <> help "global t.o. (in s) for generalization phase"
