@@ -145,4 +145,7 @@ configuration = Configuration
       <> metavar "PRP"
       <> value "reachSafety"
       <> help "(reachSafety | memSafety | overflow)" )
+  <*> switch
+      (  long "known-reach"
+      <> help "Counterfeit Detector when program is known to have at least one reach condition." )
 \end{code}

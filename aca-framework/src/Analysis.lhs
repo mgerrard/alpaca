@@ -315,7 +315,7 @@ deriveProperty "overflow" = OverflowSafety
 deriveProperty p = error $ "sorry, I don't know the property: "++(show p)
 
 runAca :: Configuration -> IO Csc
-runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPre targetFunc partBound merLen genStrat cppFlags iTimeout exclusion dseT mkCud chCud dockerFlag minusAcaFlag prp) = do
+runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPre targetFunc partBound merLen genStrat cppFlags iTimeout exclusion dseT mkCud chCud dockerFlag minusAcaFlag prp knownR) = do
   checkDockerPermissions dockerFlag
   checkFileExists program
   let prop = deriveProperty prp
@@ -373,6 +373,7 @@ runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPr
     , dockerPort     = dockerFlag
     , minusAca       = minusAcaFlag
     , stateProperty  = prop
+    , knownReach     = knownR
     }
 
 dseChoice :: String -> DseTool

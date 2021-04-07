@@ -182,7 +182,8 @@ data RunConfiguration = RunConfiguration {
   runDseTool :: DseTool,
   runDocker :: Bool,
   runPropFile :: Property,
-  runIsMinAca :: Bool
+  runIsMinAca :: Bool,
+  runHasReach :: Bool
   }
 
 data DebugMode =

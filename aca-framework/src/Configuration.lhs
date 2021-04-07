@@ -24,6 +24,7 @@ data Configuration = Configuration
   , dockerParam :: Bool
   , minusAcaParam :: Bool
   , propertyParam :: String
+  , knownReachParam :: Bool
   } deriving (Show)
 
 data CountConfiguration = CountConfiguration { cscFileToCount :: String }
