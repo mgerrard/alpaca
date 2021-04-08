@@ -16,19 +16,13 @@ main = hspec $ do
   describe "basic" $ do
     it "runs a basic end-to-end analysis" $
       runTest "basic"
-{-
-  describe "initCsc" $ do
-    it "runs ACA given an initial CSC" $
-      runTest "initCsc"
   describe "moveToTop" $ do
     it "runs an analysis that moves to Top" $
       runTest "moveToTop"
   describe "triviallyFalse" $ do
     it "returns a CSC that implicates all inputs" $
       runTest "triviallyFalse"
-  describe "modularAca" $ do
-    it "runs modular ACA over a single function" $ do
-      runTest "modularAca"
+{-
   {- Tests where an assertion is expected to be thrown -}
   describe "earlyStopping" $ do
     it "runs a single analyzer and stops early" $ do
@@ -116,6 +110,62 @@ testCase "basic" = do
     , cppParam=""
     , initTimeoutParam=900
     , excludeParam=""
+    , dseParam="cpa"
+    , makeCudParam=False
+    , chewCudParam=""
+    , dockerParam=False
+    , minusAcaParam=False
+    , propertyParam="reachSafety"
+    , knownReachParam=False
+    }
+  return $ (Just (config, oracle))
+testCase "moveToTop" = do
+  (testFile, oracle) <- testAndOracle "moveToTop"
+  let config = Configuration {
+      fileParam=testFile
+    , debugParam="full"
+    , timeoutParam=60
+    , portfolioParam="cbmc"
+    , generalizeTimeoutParam=60
+    , blockValidPathsParam=False
+    , exitStrategyParam="eager"
+    , genExitStratParam="eager"
+    , prefixParam="."
+    , targetFunctionParam="__VERIFIER_error"
+    , partitionBoundParam=4
+    , mergeLengthParam=4
+    , genStratParam="pessimisticEq"
+    , cppParam=""
+    , initTimeoutParam=900
+    , excludeParam=""
+    , dseParam="civl"
+    , makeCudParam=False
+    , chewCudParam=""
+    , dockerParam=False
+    , minusAcaParam=False
+    , propertyParam="reachSafety"
+    , knownReachParam=False
+    }
+  return $ (Just (config, oracle))
+testCase "triviallyFalse" = do
+  (testFile, oracle) <- testAndOracle "triviallyFalse"
+  let config = Configuration {
+      fileParam=testFile
+    , debugParam="full"
+    , timeoutParam=60
+    , portfolioParam="uAutomizer"
+    , generalizeTimeoutParam=60
+    , blockValidPathsParam=False
+    , exitStrategyParam="eager"
+    , genExitStratParam="eager"
+    , prefixParam="."
+    , targetFunctionParam="__VERIFIER_error"
+    , partitionBoundParam=4
+    , mergeLengthParam=4
+    , genStratParam="pessimisticEq"
+    , cppParam=""
+    , initTimeoutParam=900
+    , excludeParam=""
     , dseParam="civl"
     , makeCudParam=False
     , chewCudParam=""
@@ -141,84 +191,6 @@ testCase "spuriousAndGeneralize" = do
                , exitStrategyParam="patient"
                , modularParam="main"
                , sequentializeParam=True
-               , slimParam=False
-               , prefixParam="."
-               }
-  return $ (Just (config, oracle))
-testCase "triviallyFalse" = do
-  (testFile, oracle) <- testAndOracle "triviallyFalse"
-  let config = Configuration
-               { fileParam=testFile
-               , debugParam="slice"
-               , timeoutParam=60
-               , portfolioParam="uAutomizer"
-               , statisticsParam=False
-               , cscParam=""
-               , earlyExitParam=False
-               , generalizeTimeoutParam=60
-               , blockValidPathsParam=False
-               , exitStrategyParam="eager"
-               , modularParam="main"
-               , sequentializeParam=False
-               , slimParam=False
-               , prefixParam="."
-               }
-  return $ (Just (config, oracle))
-testCase "moveToTop" = do
-  (testFile, oracle) <- testAndOracle "moveToTop"
-  let config = Configuration
-               { fileParam=testFile
-               , debugParam="full"
-               , timeoutParam=60
-               , portfolioParam="cpaSeq16"
-               , statisticsParam=False
-               , cscParam=""
-               , earlyExitParam=False
-               , generalizeTimeoutParam=60
-               , blockValidPathsParam=False
-               , exitStrategyParam="eager"
-               , modularParam="main"
-               , sequentializeParam=False
-               , slimParam=False
-               , prefixParam="."
-               }
-  return $ (Just (config, oracle))
-testCase "initCsc" = do
-  (testFile, oracle) <- testAndOracle "initCsc"
-  prefix <- getCurrentDirectory
-  let cscfile = prefix ++ "/test/oracle_cscs/initCsc.csc"
-  let config = Configuration
-               { fileParam=testFile
-               , debugParam="full"
-               , timeoutParam=60
-               , portfolioParam="cpaSeq16"
-               , statisticsParam=False
-               , cscParam=cscfile
-               , earlyExitParam=False
-               , generalizeTimeoutParam=60
-               , blockValidPathsParam=False
-               , exitStrategyParam="eager"
-               , modularParam="main"
-               , sequentializeParam=False
-               , slimParam=False
-               , prefixParam="."
-               }
-  return $ (Just (config, oracle))
-testCase "modularAca" = do
-  (testFile, oracle) <- testAndOracle "modularAca"
-  let config = Configuration
-               { fileParam=testFile
-               , debugParam="full"
-               , timeoutParam=60
-               , portfolioParam="uAutomizer"
-               , statisticsParam=False
-               , cscParam=""
-               , earlyExitParam=False
-               , generalizeTimeoutParam=60
-               , blockValidPathsParam=False
-               , exitStrategyParam="eager"
-               , modularParam="foo"
-               , sequentializeParam=False
                , slimParam=False
                , prefixParam="."
                }

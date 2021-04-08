@@ -1,1 +1,7 @@
-Csc {disjointPartitions = [CscPartition {upperBound = UpperBound {upper = Conjunction {conjuncts = [], numberSlicedAway = 0}, upperNegations = []}, lowerBound = [Conjunction {conjuncts = [], numberSlicedAway = 0}]}], inputCountMap = fromList [(0,1)], inputTypeMap = fromList [(0,"int")], spuriousSpace = [], searchFlag = Terminate}
+
+  Partition:
+    Upper Bound:
+      (1)
+    Lower Bound:
+      (1)
+    Assumptions:

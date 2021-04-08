@@ -1,1 +1,8 @@
-Csc {disjointPartitions = [CscPartition {upperBound = UpperBound {upper = Conjunction {conjuncts = [Conjunct {ceeConjunct = "(1)", z3Conjunct = "true", inputVars = []}], numberSlicedAway = 0}, upperNegations = [Conjunction {conjuncts = [], numberSlicedAway = 0}]}, lowerBound = [Conjunction {conjuncts = [Conjunct {ceeConjunct = "(aca_input_arr_int_0[0] + 1 <= 0)", z3Conjunct = "(<= (+ aca_input_arr_int_0_0_ 1) 0)", inputVars = [("aca_input_arr_int_0_0_","int")]}], numberSlicedAway = 0}]}], inputCountMap = fromList [(0,1)], inputTypeMap = fromList [(0,"int")], spuriousSpace = [], searchFlag = Terminate}
+
+  Partition:
+    Upper Bound:
+      (1)
+    Lower Bound:
+      (X_int_0[0] + 1 <= 0)
+    Assumptions:
+      (X_int_0[0] - 1073741823 <= 0 && 0 <= X_int_0[0] + 1073741823)
