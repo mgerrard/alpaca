@@ -1,6 +1,7 @@
 import Test.Hspec
 import CscTypes
 import Analysis
+import Writing
 import Configuration
 import System.Directory
 import Data.Maybe (isJust)
@@ -15,6 +16,7 @@ main = hspec $ do
   describe "basic" $ do
     it "runs a basic end-to-end analysis" $
       runTest "basic"
+{-
   describe "initCsc" $ do
     it "runs ACA given an initial CSC" $
       runTest "initCsc"
@@ -31,7 +33,7 @@ main = hspec $ do
   describe "earlyStopping" $ do
     it "runs a single analyzer and stops early" $ do
       testEarlyStopping 
-
+-}
 type TestName = String
 
 trueTestCase :: TestName -> FilePath -> Configuration
@@ -41,34 +43,25 @@ trueTestCase "example" file =
   , debugParam="full"
   , timeoutParam=60
   , portfolioParam="uAutomizer"
-  , statisticsParam=True
-  , cscParam=""
-  , earlyExitParam=False
   , generalizeTimeoutParam=60
   , blockValidPathsParam=False
   , exitStrategyParam="eager"
-  , modularParam="main"
-  , sequentializeParam=False
-  , slimParam=False
+  , genExitStratParam="eager"
   , prefixParam="."
-  }
-{- replace "example2" with your file name -}
-trueTestCase "example2" file =
-  Configuration
-  { fileParam=file
-  , debugParam="full"
-  , timeoutParam=60
-  , portfolioParam="uAutomizer"
-  , statisticsParam=True
-  , cscParam=""
-  , earlyExitParam=False
-  , generalizeTimeoutParam=60
-  , blockValidPathsParam=False
-  , exitStrategyParam="eager"
-  , modularParam="main"
-  , sequentializeParam=False
-  , slimParam=False
-  , prefixParam="."
+  , targetFunctionParam="__VERIFIER_error"
+  , partitionBoundParam=4
+  , mergeLengthParam=4
+  , genStratParam="pessimisticEq"
+  , cppParam=""
+  , initTimeoutParam=900
+  , excludeParam=""
+  , dseParam="civl"
+  , makeCudParam=False
+  , chewCudParam=""
+  , dockerParam=False
+  , minusAcaParam=False
+  , propertyParam="reachSafety"
+  , knownReachParam=False
   }
 
 runTrueTest :: TestName -> IO ()
@@ -91,38 +84,48 @@ runTest name = do
     then do
       let (Just (config, oracle)) = maybeTest
       testCsc <- runAca config
-      testCsc `shouldBe` oracle
+      let testStr = showSmallCsc testCsc
+      testStr `shouldBe` oracle
     else do
       putStrLn $ "Could not find the test named: "++name
 
-testAndOracle :: String -> IO (FilePath, Csc)
+testAndOracle :: String -> IO (FilePath, String)
 testAndOracle n = do
   prefix <- getCurrentDirectory
   let testFile = (prefix ++ "/test/programs/" ++n++".c")
   cscfile <- readFile $ prefix ++ "/test/oracle_cscs/" ++n++".csc"
-  let oracle = read cscfile :: Csc
-  return (testFile, oracle)
-  
-testCase :: String -> IO (Maybe (Configuration, Csc))
+  return (testFile, cscfile)
+
+testCase :: String -> IO (Maybe (Configuration, String))
 testCase "basic" = do
   (testFile, oracle) <- testAndOracle "basic"
-  let config = Configuration
-               { fileParam=testFile
-               , debugParam="full"
-               , timeoutParam=60
-               , portfolioParam="uAutomizer"
-               , statisticsParam=True
-               , cscParam=""
-               , earlyExitParam=False
-               , generalizeTimeoutParam=60
-               , blockValidPathsParam=False
-               , exitStrategyParam="eager"
-               , modularParam="main"
-               , sequentializeParam=False
-               , slimParam=False
-               , prefixParam="."
-               }
+  let config = Configuration {
+      fileParam=testFile
+    , debugParam="full"
+    , timeoutParam=60
+    , portfolioParam="uAutomizer"
+    , generalizeTimeoutParam=60
+    , blockValidPathsParam=False
+    , exitStrategyParam="eager"
+    , genExitStratParam="eager"
+    , prefixParam="."
+    , targetFunctionParam="__VERIFIER_error"
+    , partitionBoundParam=4
+    , mergeLengthParam=4
+    , genStratParam="pessimisticEq"
+    , cppParam=""
+    , initTimeoutParam=900
+    , excludeParam=""
+    , dseParam="civl"
+    , makeCudParam=False
+    , chewCudParam=""
+    , dockerParam=False
+    , minusAcaParam=False
+    , propertyParam="reachSafety"
+    , knownReachParam=False
+    }
   return $ (Just (config, oracle))
+{-
 testCase "spuriousAndGeneralize" = do
   (testFile, oracle) <- testAndOracle "spuriousAndGeneralize"
   let config = Configuration
@@ -242,3 +245,4 @@ testEarlyStopping = do
              , prefixParam="."
              }
   (runAca config) `shouldThrow` anyException
+-}
