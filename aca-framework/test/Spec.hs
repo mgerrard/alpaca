@@ -175,6 +175,8 @@ testCase "triviallyFalse" = do
     , knownReachParam=False
     }
   return $ (Just (config, oracle))
+testCase _ = return Nothing -- handle unknown name in caller
+
 {-
 testCase "spuriousAndGeneralize" = do
   (testFile, oracle) <- testAndOracle "spuriousAndGeneralize"
@@ -195,26 +197,5 @@ testCase "spuriousAndGeneralize" = do
                , prefixParam="."
                }
   return $ (Just (config, oracle))
-testCase _ = return Nothing -- handle unknown name in caller
 
-testEarlyStopping :: IO ()
-testEarlyStopping = do
-  testFile <- getTestFile "basic"
-  let config = Configuration
-             { fileParam=testFile
-             , debugParam="analyzers"
-             , timeoutParam=60
-             , portfolioParam="cpaSeq"
-             , statisticsParam=False
-             , cscParam=""
-             , earlyExitParam=True
-             , generalizeTimeoutParam=60
-             , blockValidPathsParam=False
-             , exitStrategyParam="eager"
-             , modularParam="main"
-             , sequentializeParam=False
-             , slimParam=False
-             , prefixParam="."
-             }
-  (runAca config) `shouldThrow` anyException
 -}
