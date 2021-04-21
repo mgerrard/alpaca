@@ -191,7 +191,7 @@ condition p@(Program _ _ n iter _) csc = do
   display csc
   logPre <- getLogPrefix
   condStart <- io $ getCurrentTime
-  let ast' = cscAstTransform p csc
+  let ast' = cscAstTransform p csc False
       progStr = show $ pretty ast'
       iter' = iter + 1
       iterTag = "iter." ++ (show iter')
@@ -209,9 +209,9 @@ condition p@(Program _ _ n iter _) csc = do
   updateLog $ "instrumentation took "++condTime++"s\n"
   return program'
 
-initialInstrumentation :: Program -> Csc -> FilePath -> IO ()
-initialInstrumentation p@(Program _ _ n iter _) csc logPre = do
-  let ast' = cscAstTransform p csc
+initialInstrumentation :: Program -> Csc -> FilePath -> Bool -> IO ()
+initialInstrumentation p@(Program _ _ n iter _) csc logPre minAca = do
+  let ast' = cscAstTransform p csc minAca
       progStr = show $ pretty ast'
       iterTag = "iter." ++ (show iter)
       logPath = logPre ++ "/logs_alpaca/" ++ n ++ "/" ++ iterTag ++ "/"
@@ -244,8 +244,9 @@ writeIntervalProgram pre (interval, intervalTag) = do
   io $ writeFile filePath progStr
   return ()
 
-cscAstTransform :: Program -> Csc -> CTranslUnit
-cscAstTransform (Program _ a _ _ _) csc = updateTransform a csc
+cscAstTransform :: Program -> Csc -> Bool -> CTranslUnit
+cscAstTransform (Program _ a _ _ _) csc False = updateTransform a csc
+cscAstTransform (Program _ a _ _ _) csc True = a
 
 gapAstTransform :: Program -> Csc -> CscPartition -> CTranslUnit
 gapAstTransform (Program _ a _ _ _) csc p = restrictToGapTransform a csc p
@@ -314,7 +315,7 @@ runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPr
   {- update log -}
   initCsc <- initialCsc "" chCud
   startInstrumentation <- getCurrentTime
-  initialInstrumentation initProgram initCsc logPre
+  initialInstrumentation initProgram initCsc logPre minusAcaFlag
   endInstrumentation <- getCurrentTime
   
   let prefix = logFilePrefix initProgram logPre
