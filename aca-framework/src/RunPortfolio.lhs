@@ -924,6 +924,7 @@ emptySubspace = Subspace {
   conjunction=[],
   sAssumptions=[],
   inputIdCounts=(Map.fromList []),
-  inputIdTypes=(Map.fromList [])
+  inputIdTypes=(Map.fromList []),
+  nSlice=0
   }
 \end{code}
