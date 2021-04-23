@@ -128,8 +128,8 @@ updatePortfolio p witnesses =
       pWithoutWitness = p \\ pWithWitness
   in pWithWitness ++ pWithoutWitness
 
-launchSeahorn :: FilePath -> Analyzer -> Int -> FilePath -> Maybe Int -> FilePath -> IO String
-launchSeahorn cFile a t oDir _ logPre = do
+launchSeahorn :: FilePath -> Analyzer -> Int -> FilePath -> Maybe Int -> FilePath -> Bool -> IO String
+launchSeahorn cFile a t oDir _ logPre debug = do
   currDir <- getCurrentDirectory
   let pre = absolutePrefix logPre currDir
   let outDir = absoluteOutDir pre oDir
@@ -138,12 +138,13 @@ launchSeahorn cFile a t oDir _ logPre = do
   copyFile progPath uniquePath
 
   let mountStr = outDir++":/host"
-  let args = [(show t), 
+  let args = ["-k", "5", (show t), 
               "docker", 
               "run",
               "-v",
               mountStr,
               "seahorn/seahorn"]
+  if debug then putStrLn $ "timeout "++(show args) else return ()
   (_, stdOut, _) <- readProcessWithExitCode "timeout" args ""
   return stdOut
 
@@ -153,12 +154,12 @@ runAnalyzer p d mTag logPre _ dTool dock prp isMinAca hasReach a@(Analyzer Seaho
   createDirectoryIfMissing True outputDir
   let cFile = sourcePath p
   let t = deriveTimeout a mTag p
+  let debug = ((d == Full) || (d == Analyzers))
 
   start <- getCurrentTime
-  rawResult <- launchSeahorn cFile a t outputDir mTag logPre
+  rawResult <- launchSeahorn cFile a t outputDir mTag logPre debug
   end <- getCurrentTime
   let elapsedTime = (realToFrac :: (Real a) => a -> Float) $ diffUTCTime end start
-  let debug = ((d == Full) || (d == Analyzers))
 
   if debug
     then do putStrLn rawResult
@@ -283,7 +284,7 @@ runBenchexecValidator a b c d e f g False _ prp = runBenchexec a b c d e f g Fal
 runBenchexecValidator cFile a timeout oDir mTag debug logPre _ concreteAnalyzer prp = do
   outDir <- validatorSetup cFile a timeout oDir mTag debug logPre concreteAnalyzer prp
   let containerName = "portfolio"
-  let args = [(show timeout),
+  let args = ["-k", "5", (show timeout), 
               "docker",
               "run",
               "--privileged",
@@ -309,7 +310,7 @@ runBenchexec cFile a timeout oDir mTag debug logPre True prp = do
   let xmlHandle = makeXmlHandle pre oDir a mTag
   writeFile xmlHandle xmlString
   let containerName = "portfolio"
-  let args = [(show timeout),
+  let args = ["-k", "5", (show timeout), 
               "docker",
               "run",
               "--privileged",
