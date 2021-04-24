@@ -37,7 +37,7 @@ runPortfolio prog pfolio csc (RunConfiguration InParallel d tag exitStrat bValid
   {- update log : track total analysis runtime -}
   threads <- launchPortfolio prog d tag logPre exitFile dTool dock prp isMinAca hasReach pfolio 
   results <- pollUntilDone threads pfolio dTool exitStrat csc d bValid exitFile
-  mapM_ cancel threads
+  mapM_ uninterruptibleCancel threads
   return results
 runPortfolio prog pfolio csc (RunConfiguration InSequence d tag _ bValid logPre exitFile dTool dock prp isMinAca hasReach) = do
   maybeWitnesses <- mapM (runAnalyzer prog d tag logPre exitFile dTool dock prp isMinAca hasReach) pfolio
