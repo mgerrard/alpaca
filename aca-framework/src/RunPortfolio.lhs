@@ -401,12 +401,17 @@ parseResult res a p time mTag debug logPre dTool dock prp True = do
   _ <- tryToGatherWitness path -- for Vicuna
   let r = vicunaData summary a prp
   putStrLn $ show r
+  let alpacaLog = alpacaLogHandle p logPre
+  appendFile alpacaLog (show r)
   case summary of 
     UnknownResult -> return Nothing
     _ -> do exitImmediately ExitSuccess; return Nothing
 
 vicunaData :: AnalysisResult -> Analyzer -> Property -> VicunaData
 vicunaData res a prp = VicunaData res a prp
+
+alpacaLogHandle :: Program -> FilePath -> FilePath
+alpacaLogHandle (Program _ _ n _ _) logPre = logPre ++ "/logs_alpaca/" ++ n ++ "/alpaca.log"
 
 data VicunaData = VicunaData AnalysisResult Analyzer Property deriving (Show)
 
