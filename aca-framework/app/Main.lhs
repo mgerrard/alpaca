@@ -9,9 +9,11 @@ import System.Exit
 import System.Posix.Signals
 import System.Posix.Process
 import Control.Concurrent
+import System.IO
 
 main :: IO ()
 main = do
+  hSetBuffering stdout NoBuffering
   tid <- myThreadId
   _ <- installHandler keyboardSignal (Catch (killThread tid)) Nothing
   _ <- runAca =<< customExecParser (prefs (columns 120)) opts
