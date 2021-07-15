@@ -159,7 +159,8 @@ exploreSubspace program csc = do
 
   if shouldStop
     then do
-      io $ classifyEarlyResults newResults
+      return $ classifyResults newResults
+      io $ exitImmediately ExitSuccess
       assert False (return NoEvidence)
     else if null newResults
            then do
@@ -315,7 +316,7 @@ deriveProperty "overflow" = OverflowSafety
 deriveProperty p = error $ "sorry, I don't know the property: "++(show p)
 
 runAca :: Configuration -> IO Csc
-runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPre targetFunc partBound merLen genStrat cppFlags iTimeout exclusion dseT mkCud chCud dockerFlag minusAcaFlag prp knownR) = do
+runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPre targetFunc partBound merLen genStrat cppFlags iTimeout exclusion dseT mkCud chCud dockerFlag minusAcaFlag prp knownR baselineFlag) = do
   checkDockerPermissions dockerFlag
   checkFileExists program
   let prop = deriveProperty prp
@@ -355,7 +356,7 @@ runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPr
     , stateDebug     = debugMode d
     , stateStats     = initStats
     , printStats     = False
-    , stopEarly      = False
+    , stopEarly      = baselineFlag
     , blockValidPath = bValid
     , exitStrategy   = exitMode ex
     , genExitStrat   = exitMode gex

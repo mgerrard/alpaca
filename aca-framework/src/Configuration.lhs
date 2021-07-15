@@ -25,6 +25,7 @@ data Configuration = Configuration
   , minusAcaParam :: Bool
   , propertyParam :: String
   , knownReachParam :: Bool
+  , baselineParam :: Bool
   } deriving (Show)
 
 data CountConfiguration = CountConfiguration { cscFileToCount :: String }

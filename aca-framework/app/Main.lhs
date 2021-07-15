@@ -150,4 +150,7 @@ configuration = Configuration
   <*> switch
       (  long "known-reach"
       <> help "Counterfeit Detector when program is known to have at least one reach condition." )
+  <*> switch
+      (  long "baseline"
+      <> help "Exit after single iteration." )
 \end{code}
