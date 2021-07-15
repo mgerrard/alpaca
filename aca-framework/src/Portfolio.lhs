@@ -131,7 +131,7 @@ dockerSubset (Analyzer ESBMC _ _ _ _ _ _ _ _) = True
 dockerSubset (Analyzer Symbiotic _ _ _ _ _ _ _ _) = True
 dockerSubset (Analyzer CBMC _ _ _ _ _ _ _ _) = True
 dockerSubset (Analyzer Pesco _ _ _ _ _ _ _ _) = True
-dockerSubset (Analyzer Seahorn _ _ _ _ _ _ _ _) = True
+--dockerSubset (Analyzer Seahorn _ _ _ _ _ _ _ _) = True -- no SeaHorn for baseline
 dockerSubset _ = False
 
 {- Used to determine which tools do MemSafety and OverflowSafety -}
