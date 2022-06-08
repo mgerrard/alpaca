@@ -1,3 +1,41 @@
+The following 24 analysis tools were chosen to be in
+ALPACA because
+they were contestants in the 2022 Software Verification
+Competition (SV-COMP) in one (or more) of the three
+categories: ReachSafety, SoftwareSystems, or
+FalsificationOverall.
+
+The tools are:
+
+- 2LS
+- CBMC
+- CVT-AlgoSel
+- CVT-ParPort
+- CPA-BAM-BnB
+- CPA-BAM-SMG
+- CPAchecker-2-1
+- Crux
+- DIVINE
+- ESBMC-kind
+- Goblint
+- Graves-CPA
+- Infer
+- LART
+- PeSCo
+- Pinaka
+- SMACK
+- Symbiotic
+- Theta
+- UAutomizer
+- UKojak
+- UTaipan
+- VeriAbs
+- VeriFuzz
+
+We additionally include CIVL and SeaHorn as
+verifiers; these tools participated in previous
+SV-COMP years.
+
 \begin{code}
 module Portfolio where
 
@@ -42,19 +80,31 @@ data AnalysisTool =
   | CBMC
   | CIVL
   | CPA_BAM_BnB
+  | CPA-BAM-SMG
   | CPA_Seq
   | CPA_Validator
+  | Crux
+  | CVT_AlgoSel
+  | CVT_ParPort
   | DepthK
+  | DIVINE
   | ESBMC
+  | Goblint
+  | Graves
+  | Infer
   | InterpChecker
+  | LART
   | Pesco
   | Pinaka
+  | SMACK
   | Symbiotic
   | Seahorn
+  | Theta
   | UAutomizer
   | UKojak
   | UTaipan
-  | VeriAbs deriving (Eq, Show)
+  | VeriAbs
+  | VeriFuzz deriving (Eq, Show)
 
 data WitnessType = BranchDirectives | ConcreteInputs | NoWitness
 
@@ -91,6 +141,19 @@ portfolioSubset pFilter exclusions p _ =
   in catMaybes mSelections
 
 correspondingTool :: Portfolio -> String -> Maybe Analyzer
+correspondingTool p "veriFuzz" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==VeriFuzz) p
+correspondingTool p "theta" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==Theta) p
+correspondingTool p "smack" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==SMACK) p
+correspondingTool p "lart" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==LART) p
+correspondingTool p "infer" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==Infer) p
+correspondingTool p "graves" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==Graves) p
+correspondingTool p "goblint" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==Goblint) p
+correspondingTool p "divine" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==DIVINE) p
+correspondingTool p "cvtParPort" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==CVT_ParPort) p
+correspondingTool p "cvtAlgoSel" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==CVT_AlgoSel) p
+correspondingTool p "crux" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==Crux) p
+correspondingTool p "cpaBamBnB" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==CPA_BAM_BnB) p
+correspondingTool p "cpaBamSmg" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==CPA_BAM_SMG) p
 correspondingTool p "cpaSeq" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==CPA_Seq) p
 correspondingTool p "uAutomizer" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==UAutomizer) p
 correspondingTool p "uKojak" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==UKojak) p
@@ -156,12 +219,202 @@ fullPortfolio :: Int -> Int -> Int -> IO Portfolio
 fullPortfolio timeout gTimeout iTimeout = do
   portfolioDir <- getPortfolioDir
   let
+    cpabamsmg = Analyzer {
+      analysisTool = CPA_BAM_SMG,
+      analysisName = "cpabamsmg",
+      analysisDir = portfolioDir ++ "CPA_BAM_SMG",
+      analysisOptions = [
+        ("-svcomp21-bam-smg", Nothing),
+        ("-heap", Just "10000M"),
+        ("-disable-java-assertions", Nothing),
+        ("-setprop", Just "cfa.allowBranchSwapping=false"),
+        ("-setprop", Just "cpa.arg.witness.exportSourcecode=true"),
+        ("-timelimit", Just "900 s")],
+      ],
+      -- think this is safe
+      safeOverapproximation = True,
+      analysisTimeout = timeout,
+      witnessType = BranchDirectives,
+      generalizeTimeout = gTimeout,
+      initTimeout = iTimeout
+      }
+    cpabambnb = Analyzer {
+      analysisTool = CPA_BAM_BnB,
+      analysisName = "cpabambnb",
+      analysisDir = portfolioDir ++ "CPA_BAM_BnB",
+      analysisOptions = [
+        ("-svcomp21-bam-bnb", Nothing),
+        ("-heap", Just "10000M"),
+        ("-disable-java-assertions", Nothing),
+        ("-setprop", Just "cfa.allowBranchSwapping=false"),
+        ("-setprop", Just "cpa.arg.witness.exportSourcecode=true"),
+        ("-timelimit", Just "900 s")
+      ],
+      -- think this is safe
+      safeOverapproximation = True,
+      analysisTimeout = timeout,
+      witnessType = BranchDirectives,
+      generalizeTimeout = gTimeout,
+      initTimeout = iTimeout
+      }
+    crux = Analyzer {
+      analysisTool = Crux,
+      analysisName = "crux",
+      analysisDir = portfolioDir ++ "Crux",
+      analysisOptions = [],
+      -- uses symbolic reasoning to check tests exhaustively
+      safeOverapproximation = True,
+      analysisTimeout = timeout,
+      witnessType = BranchDirectives,
+      generalizeTimeout = gTimeout,
+      initTimeout = iTimeout
+      }
+    cvtalgosel = Analyzer {
+      analysisTool = CVT_AlgoSel,
+      analysisName = "cvtalgosel",
+      analysisDir = portfolioDir ++ "CVT_AlgoSel",
+      analysisOptions = [
+        ("verifier-algo-selection.cvt", Nothing),
+        ("--cache-dir", Just "cache"),
+        ("--no-cache-update", Nothing),
+      ],
+      -- not sure if this is safe
+      safeOverapproximation = False,
+      analysisTimeout = timeout,
+      witnessType = BranchDirectives,
+      generalizeTimeout = gTimeout,
+      initTimeout = iTimeout
+      }
+    cvtparport = Analyzer {
+      analysisTool = CVT_ParPort,
+      analysisName = "cvtparport",
+      analysisDir = portfolioDir ++ "CVT_ParPort",
+      analysisOptions = [
+        ("verifier-parallel-portfolio.cvt", Nothing),
+        ("--cache-dir", Just "cache"),
+        ("--no-cache-update", Nothing),
+	("--use-python-processes", Nothing),
+      ],
+      -- not sure if this is safe
+      safeOverapproximation = False,
+      analysisTimeout = timeout,
+      witnessType = BranchDirectives,
+      generalizeTimeout = gTimeout,
+      initTimeout = iTimeout
+      }
+    divine = Analyzer {
+      analysisTool = DIVINE,
+      analysisName = "divine",
+      analysisDir = portfolioDir ++ "DIVINE",
+      analysisOptions = [],
+      -- not sure if this is safe
+      safeOverapproximation = False,
+      analysisTimeout = timeout,
+      witnessType = BranchDirectives,
+      generalizeTimeout = gTimeout,
+      initTimeout = iTimeout
+      }
+    goblint = Analyzer {
+      analysisTool = Goblint,
+      analysisName = "goblint",
+      analysisDir = portfolioDir ++ "Goblint",
+      analysisOptions = [("--conf", Just "conf/svcomp22.json")],
+      -- assume this is just linter, i.e., underapprox
+      safeOverapproximation = False,
+      analysisTimeout = timeout,
+      witnessType = BranchDirectives,
+      generalizeTimeout = gTimeout,
+      initTimeout = iTimeout
+      }
+    graves = Analyzer {
+      analysisTool = Graves,
+      analysisName = "graves",
+      analysisDir = portfolioDir ++ "Graves",
+      analysisOptions = [
+        ("-svcomp22-graves", Nothing),
+        ("-heap", Just "10000M"),
+        ("-benchmark", Nothing),
+        ("-setprop", Just "cfa.allowBranchSwapping=false"),
+        ("-setprop", Just "cpa.arg.witness.exportSourcecode=true"),
+        ("-timelimit", Just "900 s")],
+      ],
+      -- uses safe CPA analyses (check with Will)
+      safeOverapproximation = True,
+      analysisTimeout = timeout,
+      witnessType = BranchDirectives,
+      generalizeTimeout = gTimeout,
+      initTimeout = iTimeout
+      }
+    infer = Analyzer {
+      analysisTool = Infer,
+      analysisName = "infer",
+      analysisDir = portfolioDir ++ "Infer",
+      analysisOptions = [],
+      -- uses abstract interpretation
+      safeOverapproximation = True,
+      analysisTimeout = timeout,
+      witnessType = BranchDirectives,
+      generalizeTimeout = gTimeout,
+      initTimeout = iTimeout
+      }
+    lart = Analyzer {
+      analysisTool = LART,
+      analysisName = "lart",
+      analysisDir = portfolioDir ++ "LART",
+      analysisOptions = [],
+      -- unsure, but looks like a safe analysis?
+      safeOverapproximation = False,
+      analysisTimeout = timeout,
+      witnessType = BranchDirectives,
+      generalizeTimeout = gTimeout,
+      initTimeout = iTimeout
+      }
+    smack = Analyzer {
+      analysisTool = SMACK,
+      analysisName = "smack",
+      analysisDir = portfolioDir ++ "SMACK",
+      analysisOptions = [("-w", Just "error-witness.graphml")],
+      -- verifies up to a bound
+      safeOverapproximation = False,
+      analysisTimeout = timeout,
+      witnessType = BranchDirectives,
+      generalizeTimeout = gTimeout,
+      initTimeout = iTimeout
+      }
+    theta = Analyzer {
+      analysisTool = Theta,
+      analysisName = "theta",
+      analysisDir = portfolioDir ++ "theta",
+      analysisOptions = [
+        ("--witness-only", Nothing),
+	("--portfolio", Just "COMPLEX"),
+	("--loglevel", Just "RESULT")
+      ],
+      -- model checker based on abstr. refinement
+      safeOverapproximation = True,
+      analysisTimeout = timeout,
+      witnessType = BranchDirectives,
+      generalizeTimeout = gTimeout,
+      initTimeout = iTimeout
+      }
+    veriFuzz = Analyzer {
+      analysisTool = VeriFuzz,
+      analysisName = "verifuzz",
+      analysisDir = portfolioDir ++ "VeriFuzz",
+      analysisOptions = [],
+      -- evolutionary fuzz testing w/ static analysis (safe)
+      safeOverapproximation = True,
+      analysisTimeout = timeout,
+      witnessType = BranchDirectives,
+      generalizeTimeout = gTimeout,
+      initTimeout = iTimeout
+      }
     cpaSeq = Analyzer {
       analysisTool = CPA_Seq,
       analysisName = "cpachecker",
       analysisDir = portfolioDir ++ "CPA_Seq",
       analysisOptions = [
-        ("-svcomp20", Nothing),
+        ("-svcomp22", Nothing),
         ("-heap", Just "10000M"),
         ("-benchmark", Nothing),
         ("-setprop", Just "cfa.allowBranchSwapping=false"),
@@ -177,9 +430,7 @@ fullPortfolio timeout gTimeout iTimeout = do
       analysisTool = UAutomizer,
       analysisName = "ultimateautomizer",
       analysisDir = portfolioDir ++ "UAutomizer",
-      analysisOptions = [
-        ("--full-output", Nothing),
-        ("--architecture", Just "32bit")],
+      analysisOptions = [("--full-output", Nothing)],
       safeOverapproximation = True,
       analysisTimeout = timeout,
       witnessType = BranchDirectives,
@@ -192,8 +443,7 @@ fullPortfolio timeout gTimeout iTimeout = do
       analysisDir = portfolioDir ++ "Symbiotic",
       analysisOptions = [
         ("--witness", Just "witness.graphml"),
-        ("--sv-comp", Nothing),
-        ("--32", Nothing)],
+        ("--sv-comp", Nothing)],
       safeOverapproximation = False,
       analysisTimeout = timeout,
       witnessType = ConcreteInputs,
@@ -228,7 +478,7 @@ fullPortfolio timeout gTimeout iTimeout = do
       analysisName = "pesco",
       analysisDir = portfolioDir ++ "Pesco",
       analysisOptions = [
-          ("-svcomp20-pesco", Nothing),
+          ("-svcomp21-pesco", Nothing),
           ("-heap", Just "10000M"),
           ("-stack", Just "2048k"),
           ("-benchmark", Nothing),
@@ -245,7 +495,7 @@ fullPortfolio timeout gTimeout iTimeout = do
       analysisDir = portfolioDir ++ "TwoLS",
       analysisOptions = [
         ("--graphml-witness", Just "witness.graphml"),
-        ("--32", Nothing)],
+      ],
       safeOverapproximation = True,
       analysisTimeout = timeout,
       witnessType = ConcreteInputs,
@@ -257,8 +507,7 @@ fullPortfolio timeout gTimeout iTimeout = do
       analysisName = "cbmc",
       analysisDir = portfolioDir ++ "CBMC",
       analysisOptions = [
-        ("--graphml-witness", Just "witness.graphml"),
-        ("--32", Nothing)],
+        ("--graphml-witness", Just "witness.graphml")],
       safeOverapproximation = False,
       analysisTimeout = timeout,
       witnessType = ConcreteInputs,
@@ -269,9 +518,7 @@ fullPortfolio timeout gTimeout iTimeout = do
       analysisTool = UTaipan,
       analysisName = "ultimatetaipan",
       analysisDir = portfolioDir ++ "UTaipan",
-      analysisOptions = [
-        ("--full-output", Nothing),
-        ("--architecture", Just "32bit")],
+      analysisOptions = [("--full-output", Nothing)],
       safeOverapproximation = True,
       analysisTimeout = timeout,
       witnessType = BranchDirectives,
@@ -282,9 +529,7 @@ fullPortfolio timeout gTimeout iTimeout = do
       analysisTool = UKojak,
       analysisName = "ultimatekojak",
       analysisDir = portfolioDir ++ "UKojak",
-      analysisOptions = [
-        ("--full-output", Nothing),
-        ("--architecture", Just "32bit")],
+      analysisOptions = [("--full-output", Nothing)],
       safeOverapproximation = True,
       analysisTimeout = timeout,
       witnessType = BranchDirectives,
@@ -295,9 +540,7 @@ fullPortfolio timeout gTimeout iTimeout = do
       analysisTool = Pinaka,
       analysisName = "pinaka",
       analysisDir = portfolioDir ++ "Pinaka",
-      analysisOptions = [
-        ("--graphml-witness", Just "witness.graphml"),
-        ("--32", Nothing)],
+      analysisOptions = [("--graphml-witness", Just "witness.graphml")],
       safeOverapproximation = True, -- only terminates when all paths are examined
       analysisTimeout = timeout,
       witnessType = ConcreteInputs,
@@ -315,5 +558,5 @@ fullPortfolio timeout gTimeout iTimeout = do
       generalizeTimeout = gTimeout,
       initTimeout = iTimeout
       }
-  return [cpaSeq,uAutomizer,esbmc,pesco,symbiotic,veriAbs,twoLs,cbmc,uTaipan,uKojak,pinaka,seahorn]
+  return [cpaSeq,uAutomizer,esbmc,pesco,symbiotic,veriAbs,twoLs,cbmc,uTaipan,uKojak,pinaka,seahorn,cpabamsmg,cpabambnb,crux,cvtalgosel,cvtparport,divine,goblint,graves,infer,lart,smack,theta,verifuzz]
 \end{code}
