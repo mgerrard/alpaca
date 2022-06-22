@@ -94,6 +94,19 @@ executables:
       - optparse-applicative
     other-modules:
       - Paths_aca_framework
+  runtools:
+    main:                MainRuntools.lhs
+    source-dirs:         app
+    ghc-options:
+      - -Wall
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - aca-framework
+      - optparse-applicative
+    other-modules:
+      - Paths_aca_framework
 
 tests:
   aca-framework-test:
