@@ -33,7 +33,6 @@ main = do
 runtool :: String -> FilePath -> FilePath -> IO (ToolResult, Maybe FilePath)
 runtool "cpa" outDir fDir = do
   (_,stdOut,stdErr) <- readProcessWithExitCode "/usr/bin/docker" ["run","-v",outDir++":/alpaca_out","-v",fDir++":/alpaca_in","cpa"] ""
---  (_,stdOut,_) <- readProcessWithExitCode (toolDir++"/scripts/cpa.sh") ["-svcomp22", "-timelimit", "900s", f] ""
   putStrLn stdOut
   putStrLn stdErr
   let result = determineResult "cpa" stdOut
@@ -42,15 +41,13 @@ runtool "cpa" outDir fDir = do
   if isJust maybeWitness
     then do
       let (Just w) = maybeWitness
-      copyFile w (outDir++"/witness.graphml")
       putStrLn $ "witness at: "++outDir++"/witness.graphml"
       return (result,maybeWitness)
     else return (result,Nothing)
-{-    
-runtool "ua" outDir f = do
-  (_,stdOut,stdErr) <- readProcessWithExitCode (toolDir++"/Ultimate.py") ["--full-output","--spec", 
-    "/home/mjg6v/work/alpaca/tools/analyzer-portfolio/PropertyUnreachCall.prp", 
-    "--file", f, "--architecture", "32bit", "--witness-dir", outDir] ""
+runtool "ua" outDir fDir = do
+  (_,stdOut,stdErr) <- readProcessWithExitCode "/usr/bin/docker" ["run","-v",outDir++":/alpaca_out","-v",fDir++":/alpaca_in","ua"] ""
+  putStrLn stdOut
+  putStrLn stdErr
   let result = determineResult "ua" stdOut
   putStrLn stdOut; putStrLn stdErr
   putStrLn $ "ua result: "++(show result)
@@ -58,11 +55,9 @@ runtool "ua" outDir f = do
   if isJust maybeWitness
     then do
       let (Just w) = maybeWitness
-      copyFile w (outDir++"/witness.graphml")
       putStrLn $ "witness at: "++outDir++"/witness.graphml"
       return (result,maybeWitness)
     else return (result,Nothing)
--}    
 runtool t _ _ = error $ "oops, i don't know the tool '"++t++"'"
 
 determineResult :: String -> String -> ToolResult
@@ -74,10 +69,10 @@ determineResult "cpa" o =
         then TrueResult
 	else UnknownResult
 determineResult "ua" o =
-  if isInfixOf "Result:\nFALSE" o
+  if isInfixOf "Result: FALSE" o
     then FalseResult
     else
-      if isInfixOf "Result:\nFALSE" o
+      if isInfixOf "Result: TRUE" o
         then TrueResult
 	else UnknownResult
 determineResult t _ = error $ "oops, i don't know how to parse the result for "++t
