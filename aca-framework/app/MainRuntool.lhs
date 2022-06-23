@@ -22,20 +22,23 @@ main :: IO ()
 main = do
   args <- getArgs
   case args of
-    [tool,toolDir,outDir,cFile] -> do
-      putStrLn $ "args: "++tool++" "++toolDir++" "++outDir++" "++cFile
+    [tool,outDir,cFile] -> do
+      putStrLn $ "args: "++tool++" "++outDir++" "++cFile
       createDirectoryIfMissing True outDir
-      runtool tool toolDir outDir cFile
+      runtool tool outDir cFile
       return ()
     _ -> do
-      putStrLn "usage: runtool TOOL TOOL_DIR OUT_DIR C_FILE"
+      putStrLn "usage: runtool TOOL OUT_DIR C_FILE_DIR"
 
-runtool :: String -> FilePath -> FilePath -> FilePath -> IO (ToolResult, Maybe FilePath)
-runtool "cpa" toolDir outDir f = do
-  (_,stdOut,_) <- readProcessWithExitCode (toolDir++"/scripts/cpa.sh") ["-svcomp22", "-timelimit", "900s", f] ""
+runtool :: String -> FilePath -> FilePath -> IO (ToolResult, Maybe FilePath)
+runtool "cpa" outDir fDir = do
+  (_,stdOut,stdErr) <- readProcessWithExitCode "/usr/bin/docker" ["run","-v",outDir++":/alpaca_out","-v",fDir++":/alpaca_in","cpa"] ""
+--  (_,stdOut,_) <- readProcessWithExitCode (toolDir++"/scripts/cpa.sh") ["-svcomp22", "-timelimit", "900s", f] ""
+  putStrLn stdOut
+  putStrLn stdErr
   let result = determineResult "cpa" stdOut
   putStrLn $ "cpa result: "++(show result)
-  maybeWitness <- cpaWitness
+  maybeWitness <- cpaWitness outDir
   if isJust maybeWitness
     then do
       let (Just w) = maybeWitness
@@ -43,7 +46,8 @@ runtool "cpa" toolDir outDir f = do
       putStrLn $ "witness at: "++outDir++"/witness.graphml"
       return (result,maybeWitness)
     else return (result,Nothing)
-runtool "ua" toolDir outDir f = do
+{-    
+runtool "ua" outDir f = do
   (_,stdOut,stdErr) <- readProcessWithExitCode (toolDir++"/Ultimate.py") ["--full-output","--spec", 
     "/home/mjg6v/work/alpaca/tools/analyzer-portfolio/PropertyUnreachCall.prp", 
     "--file", f, "--architecture", "32bit", "--witness-dir", outDir] ""
@@ -58,7 +62,8 @@ runtool "ua" toolDir outDir f = do
       putStrLn $ "witness at: "++outDir++"/witness.graphml"
       return (result,maybeWitness)
     else return (result,Nothing)
-runtool t _ _ _ = error $ "oops, i don't know the tool '"++t++"'"
+-}    
+runtool t _ _ = error $ "oops, i don't know the tool '"++t++"'"
 
 determineResult :: String -> String -> ToolResult
 determineResult "cpa" o =
@@ -77,9 +82,9 @@ determineResult "ua" o =
 	else UnknownResult
 determineResult t _ = error $ "oops, i don't know how to parse the result for "++t
 
-cpaWitness :: IO (Maybe FilePath)
-cpaWitness = do
-  let witnessLoc = "output/witness.graphml"
+cpaWitness :: FilePath -> IO (Maybe FilePath)
+cpaWitness outDir = do
+  let witnessLoc = outDir++"/witness.graphml"
   witnessExists <- doesFileExist witnessLoc
   if witnessExists
     then return (Just witnessLoc)
