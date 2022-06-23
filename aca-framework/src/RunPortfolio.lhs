@@ -294,6 +294,11 @@ runBenchexecValidator cFile a timeout oDir mTag debug logPre _ concreteAnalyzer 
   if debug then putStrLn ("Call to docker-benchexec:\n\n "++"timeout "++(show args)) else return ()
   readProcessWithExitCode "timeout" args ""
 
+aContainerName :: Analyzer -> String
+aContainerName (Analyzer CPA_Seq _ _ _ _ _ _ _ _) = "cpa"
+aContainerName (Analyzer UAutomizer _ _ _ _ _ _ _ _) = "ua"
+aContainerName (Analyzer t _ _ _ _ _ _ _ _) = error $ "have not implemented docker container for"++(show t)
+
 runBenchexec :: FilePath -> Analyzer -> Int -> String -> Maybe Int -> Bool -> FilePath -> Bool -> Property -> IO (ExitCode, String, String)
 runBenchexec cFile a timeout oDir mTag debug logPre True prp = do
   currDir <- getCurrentDirectory
@@ -303,21 +308,22 @@ runBenchexec cFile a timeout oDir mTag debug logPre True prp = do
   let progPath = absoluteFullFile pre cFile
   let uniquePath = programWithinToolDir progPath a
   copyNonvalidatorFile a progPath uniquePath
+  -- need to get base directory of uniquePath
+  let uniqParentDir = uniqueParent progPath a
   let fName = takeFileName cFile
-  let t = show $ analysisTool a
-  let containerFile = "/home/alpaca_logs/"++fName++"."++t++".c"
-  let xmlString = constructXML a containerFile baseDir True prp
-  let xmlHandle = makeXmlHandle pre oDir a mTag
-  writeFile xmlHandle xmlString
-  let containerName = "portfolio"
+--  let t = show $ analysisTool a
+--  let containerFile = "/home/alpaca_logs/"++fName++"."++t++".c"
+--  let xmlString = constructXML a containerFile baseDir True prp
+--  let xmlHandle = makeXmlHandle pre oDir a mTag
+--  writeFile xmlHandle xmlString
+  let containerName = aContainerName a
   let args = ["-k", "5", (show timeout), 
               "docker",
               "run",
-              "--privileged",
-              "-v",(outDir++":"++"/home/alpaca_logs"),
-              "-v","/sys/fs/cgroup:/sys/fs/cgroup:rw",
+              "-v",(outDir++":"++"/alpaca_out"),
+              "-v",(uniqParentDir++":"++"/alpaca_in"),	      
               containerName]
-  if debug then putStrLn ("Call to docker-benchexec:\n\n "++"timeout "++(show args)) else return ()
+  if debug then putStrLn ("Call to alpaca-runtool:\n\n "++"timeout "++(show args)) else return ()
   readProcessWithExitCode "timeout" args ""
 runBenchexec cFile a timeout oDir mTag debug logPre False prp = do
   currDir <- getCurrentDirectory
@@ -672,6 +678,7 @@ symbolicExecution (Program uniquePath _ _ _ _) t = do
 directedCivlArgs :: FilePath -> FilePath -> Bool -> IO [String]
 directedCivlArgs program directFile valid = do
   civlJar <- getCivlJar
+  putStrLn $ "************** the CIVL JAR IS: "++civlJar
   directFile' <- makeAbsolute directFile
   let directArg = "-direct="++directFile'
   program' <- makeAbsolute program
@@ -689,8 +696,13 @@ sliceCivlArgs program valid = do
 
 runDirectedCivl :: (FilePath, FilePath) -> DebugMode -> Bool -> IO String
 runDirectedCivl (program, directFile) d valid = do
+  putStrLn "running directed civl"
   args <- directedCivlArgs program directFile valid
+  putStrLn "** ## args:"
+  putStrLn $ concat $ intersperse " " $ args
   (exitCode, stdOut, stdErr) <- readProcessWithExitCode "java" args ""
+  putStrLn "stdout"
+  putStrLn stdOut
   directedDebug directFile (exitCode, stdOut, stdErr) d valid
   return stdOut
 
@@ -845,6 +857,13 @@ programWithinToolDir p a =
       progName = last $ splitOn "/" p
       programInDir = prefix ++ "/" ++ (show a) ++ "/" ++ progName 
   in programInDir ++ "." ++ (show a) ++ ".c"
+
+uniqueParent :: FilePath -> Analyzer -> String
+uniqueParent p a =
+  let prefix = concat $ intersperse "/" $ init $ splitOn "/" p
+      progName = last $ splitOn "/" p
+      programInDir = prefix ++ "/" ++ (show a) ++ "/" 
+  in programInDir
 
 checkAnalysisWitness :: DseTool -> DebugMode -> Bool -> FilePath -> AnalysisWitness -> IO PieceOfEvidence
 checkAnalysisWitness _ _ _ _ w@(AnalysisWitness _ _ _ True _ _ _) = return (LegitimateEvidence w emptySubspace 0)

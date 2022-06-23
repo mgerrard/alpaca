@@ -80,7 +80,7 @@ data AnalysisTool =
   | CBMC
   | CIVL
   | CPA_BAM_BnB
-  | CPA-BAM-SMG
+  | CPA_BAM_SMG
   | CPA_Seq
   | CPA_Validator
   | Crux
@@ -230,7 +230,6 @@ fullPortfolio timeout gTimeout iTimeout = do
         ("-setprop", Just "cfa.allowBranchSwapping=false"),
         ("-setprop", Just "cpa.arg.witness.exportSourcecode=true"),
         ("-timelimit", Just "900 s")],
-      ],
       -- think this is safe
       safeOverapproximation = True,
       analysisTimeout = timeout,
@@ -276,8 +275,7 @@ fullPortfolio timeout gTimeout iTimeout = do
       analysisOptions = [
         ("verifier-algo-selection.cvt", Nothing),
         ("--cache-dir", Just "cache"),
-        ("--no-cache-update", Nothing),
-      ],
+        ("--no-cache-update", Nothing)],
       -- not sure if this is safe
       safeOverapproximation = False,
       analysisTimeout = timeout,
@@ -293,8 +291,7 @@ fullPortfolio timeout gTimeout iTimeout = do
         ("verifier-parallel-portfolio.cvt", Nothing),
         ("--cache-dir", Just "cache"),
         ("--no-cache-update", Nothing),
-	("--use-python-processes", Nothing),
-      ],
+	("--use-python-processes", Nothing)],
       -- not sure if this is safe
       safeOverapproximation = False,
       analysisTimeout = timeout,
@@ -337,7 +334,6 @@ fullPortfolio timeout gTimeout iTimeout = do
         ("-setprop", Just "cfa.allowBranchSwapping=false"),
         ("-setprop", Just "cpa.arg.witness.exportSourcecode=true"),
         ("-timelimit", Just "900 s")],
-      ],
       -- uses safe CPA analyses (check with Will)
       safeOverapproximation = True,
       analysisTimeout = timeout,
@@ -414,7 +410,8 @@ fullPortfolio timeout gTimeout iTimeout = do
       analysisName = "cpachecker",
       analysisDir = portfolioDir ++ "CPA_Seq",
       analysisOptions = [
-        ("-svcomp22", Nothing),
+--        ("-svcomp22", Nothing),
+        ("-svcomp20", Nothing),
         ("-heap", Just "10000M"),
         ("-benchmark", Nothing),
         ("-setprop", Just "cfa.allowBranchSwapping=false"),
@@ -494,8 +491,7 @@ fullPortfolio timeout gTimeout iTimeout = do
       analysisName = "two_ls",
       analysisDir = portfolioDir ++ "TwoLS",
       analysisOptions = [
-        ("--graphml-witness", Just "witness.graphml"),
-      ],
+        ("--graphml-witness", Just "witness.graphml")],
       safeOverapproximation = True,
       analysisTimeout = timeout,
       witnessType = ConcreteInputs,
@@ -558,5 +554,5 @@ fullPortfolio timeout gTimeout iTimeout = do
       generalizeTimeout = gTimeout,
       initTimeout = iTimeout
       }
-  return [cpaSeq,uAutomizer,esbmc,pesco,symbiotic,veriAbs,twoLs,cbmc,uTaipan,uKojak,pinaka,seahorn,cpabamsmg,cpabambnb,crux,cvtalgosel,cvtparport,divine,goblint,graves,infer,lart,smack,theta,verifuzz]
+  return [cpaSeq,uAutomizer,esbmc,pesco,symbiotic,veriAbs,twoLs,cbmc,uTaipan,uKojak,pinaka,seahorn,cpabamsmg,cpabambnb,crux,cvtalgosel,cvtparport,divine,goblint,graves,infer,lart,smack,theta,veriFuzz]
 \end{code}

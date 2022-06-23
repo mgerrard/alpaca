@@ -301,14 +301,6 @@ checkFileExists f = do
     then error $ "oops, i can't find '"++f++"'"
     else return ()
 
-checkDockerPermissions :: Bool -> IO ()
-checkDockerPermissions False = return ()
-checkDockerPermissions True = do
-  uId <- getRealUserID
-  if uId /= 0
-    then error "user must be root to run docker"
-    else return ()
-
 deriveProperty :: String -> Property
 deriveProperty "reachSafety" = ReachSafety
 deriveProperty "memSafety" = MemSafety
@@ -317,7 +309,6 @@ deriveProperty p = error $ "sorry, I don't know the property: "++(show p)
 
 runAca :: Configuration -> IO Csc
 runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPre targetFunc partBound merLen genStrat cppFlags iTimeout exclusion dseT mkCud chCud dockerFlag minusAcaFlag prp knownR baselineFlag) = do
-  checkDockerPermissions dockerFlag
   checkFileExists program
   let prop = deriveProperty prp
   setLibraryEnvironmentVariable
