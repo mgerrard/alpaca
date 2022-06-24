@@ -73,7 +73,7 @@ library:
     - SolverLib
     - Writing
     - Statistics
-    - LaunchBenchexec
+    - LaunchTool
     - Reading
     - Characterize
 

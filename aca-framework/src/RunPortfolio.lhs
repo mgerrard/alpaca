@@ -27,7 +27,7 @@ import CivlParsing
 import CpaParsing
 import LocalPaths
 import AcaComputation
-import LaunchBenchexec
+import LaunchTool
 import Reading
 
 type Thread = Async (Maybe AnalysisWitness)
@@ -206,7 +206,7 @@ executeAnalyzer p a t mTag debug logPre prp = do
   let outputDir = deriveOutputDir p a mTag
   createDirectoryIfMissing True outputDir
   let cFile = sourcePath p
-  runBenchexec cFile a t outputDir mTag debug logPre prp
+  runTool cFile a t outputDir mTag debug logPre prp
 
 runIkos :: FilePath -> Int -> IO (ExitCode, String, String)
 runIkos f _ = do
@@ -246,7 +246,7 @@ executeValidator p validator concreteAnalyzer mTag debug logPre prp = do
   createDirectoryIfMissing True outputDir
   let timeout = 90 -- standard witness timeout
   let cFile = sourcePath p
-  (exitCode, stdout, stderr) <- runBenchexecValidator cFile validator timeout outputDir mTag debug logPre concreteAnalyzer prp
+  (exitCode, stdout, stderr) <- runValidator cFile validator timeout outputDir mTag debug logPre concreteAnalyzer prp
 
   if debug
   then do
@@ -271,17 +271,13 @@ validatorSetup cFile a _ oDir mTag _ logPre concreteAnalyzer prp = do
       witnessFile = (dirToValidate outDir)++"/witness.graphml"
   copyFile progPath (outDir++"/"++progName)
   copyFile witnessFile (outDir++"/witness.graphml") 
-  let fName = takeFileName cFile
-      t = show $ analysisTool concreteAnalyzer
-      containerFile = "/home/alpaca_logs/"++fName++"."++t++".c"
-      xmlString = constructXML a containerFile "/home/alpaca_logs/" True prp
-      xmlHandle = makeXmlHandle pre oDir a mTag
-  writeFile xmlHandle xmlString
   return outDir
 
-runBenchexecValidator :: FilePath -> Analyzer -> Int -> String -> Maybe Int -> Bool -> FilePath -> Analyzer -> Property -> IO (ExitCode, String, String)
-runBenchexecValidator a b c d e f g _ prp = runBenchexec a b c d e f g prp
-runBenchexecValidator cFile a timeout oDir mTag debug logPre concreteAnalyzer prp = do
+runValidator :: FilePath -> Analyzer -> Int -> String -> Maybe Int -> Bool -> FilePath -> Analyzer -> Property -> IO (ExitCode, String, String)
+runValidator a b c d e f g _ prp = runTool a b c d e f g prp
+runValidator cFile a timeout oDir mTag debug logPre concreteAnalyzer prp = error "need to implement concrete analyzer"
+{-
+runValidator cFile a timeout oDir mTag debug logPre concreteAnalyzer prp = do
   outDir <- validatorSetup cFile a timeout oDir mTag debug logPre concreteAnalyzer prp
   let containerName = "portfolio"
   let args = ["-k", "5", (show timeout), 
@@ -293,14 +289,15 @@ runBenchexecValidator cFile a timeout oDir mTag debug logPre concreteAnalyzer pr
               containerName]
   if debug then putStrLn ("Call to docker-benchexec:\n\n "++"timeout "++(show args)) else return ()
   readProcessWithExitCode "timeout" args ""
+-}
 
 aContainerName :: Analyzer -> String
 aContainerName (Analyzer CPA_Seq _ _ _ _ _ _ _ _) = "cpa"
 aContainerName (Analyzer UAutomizer _ _ _ _ _ _ _ _) = "ua"
 aContainerName (Analyzer t _ _ _ _ _ _ _ _) = error $ "have not implemented docker container for"++(show t)
 
-runBenchexec :: FilePath -> Analyzer -> Int -> String -> Maybe Int -> Bool -> FilePath -> Property -> IO (ExitCode, String, String)
-runBenchexec cFile a timeout oDir mTag debug logPre prp = do
+runTool :: FilePath -> Analyzer -> Int -> String -> Maybe Int -> Bool -> FilePath -> Property -> IO (ExitCode, String, String)
+runTool cFile a timeout oDir mTag debug logPre prp = do
   currDir <- getCurrentDirectory
   baseDir <- getAnalyzerDir
   let pre = absolutePrefix logPre currDir
@@ -347,11 +344,6 @@ makeXmlHandle "" oDir a Nothing = oDir ++ "/" ++ (show a) ++ ".xml"
 makeXmlHandle "" oDir a (Just tag) = oDir ++ "/" ++ (show a) ++ "." ++ (show tag) ++ ".xml"
 makeXmlHandle pre oDir a Nothing = pre ++ "/" ++ oDir ++ "/" ++ (show a) ++ ".xml"
 makeXmlHandle pre oDir a (Just tag) = pre ++ "/" ++ oDir ++ "/" ++ (show a) ++ "." ++ (show tag) ++ ".xml"
-
-benchexecScript :: IO String
-benchexecScript = do
-  dir <- analyzerDir
-  return $ dir ++ "/run_benchexec.sh"
 
 safeResult :: Analyzer -> Float -> AnalysisWitness
 safeResult a t = AnalysisWitness {

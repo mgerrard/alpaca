@@ -3,7 +3,7 @@ module Lib
     ( portfolio,
       runAca,
 --      runCount,
-      runBenchexec,
+      runTool,
       setLibraryEnvironmentVariable,
       Configuration(..),
       CountConfiguration(..)
