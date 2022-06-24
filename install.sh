@@ -40,14 +40,6 @@ function check_java_version {
     }
 }
 
-function check_benchexec_version {
-    benchexec_version=$(benchexec --version | awk '{print $2}')
-    verlt $benchexec_version 2.7 && {
-	echo "Please update your version of benchexec to at least 2.7 by downloading the latest .deb file listed at github.com/mgerrard/alpaca/README.md and following the install instructions.";
-	exit 1;
-    }
-}
-
 function does_package_exist {
     dpkg -l $1 >/dev/null 2>&1 || { echo >&2 "I cannot find $1 in your package manager; please install it. Aborting."; exit 1; }
 }
@@ -58,8 +50,6 @@ check_java_version
 check_for "python3"
 check_for_python_3_6
 check_for_python
-check_for "benchexec"
-check_benchexec_version
 check_for "z3"
 check_for "ant"
 check_for "git"
