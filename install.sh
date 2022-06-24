@@ -53,6 +53,7 @@ check_for_python
 check_for "z3"
 check_for "ant"
 check_for "git"
+check_for "docker"
 does_package_exist "libc6-dev-i386"
 does_package_exist "python-pycparser"
 does_package_exist "libgmp-dev"
