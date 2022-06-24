@@ -180,7 +180,6 @@ data RunConfiguration = RunConfiguration {
   runLogPrefix :: String,
   runExitFile :: FilePath,
   runDseTool :: DseTool,
-  runDocker :: Bool,
   runPropFile :: Property,
   runIsMinAca :: Bool,
   runHasReach :: Bool

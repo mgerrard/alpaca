@@ -308,7 +308,7 @@ deriveProperty "overflow" = OverflowSafety
 deriveProperty p = error $ "sorry, I don't know the property: "++(show p)
 
 runAca :: Configuration -> IO Csc
-runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPre targetFunc partBound merLen genStrat cppFlags iTimeout exclusion dseT mkCud chCud dockerFlag minusAcaFlag prp knownR baselineFlag) = do
+runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPre targetFunc partBound merLen genStrat cppFlags iTimeout exclusion dseT mkCud chCud minusAcaFlag prp knownR baselineFlag) = do
   checkFileExists program
   let prop = deriveProperty prp
   setLibraryEnvironmentVariable
@@ -362,7 +362,6 @@ runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPr
     , dseTool        = dseChoice dseT
     , makeCud        = mkCud
     , chewCud        = chCud
-    , dockerPort     = dockerFlag
     , minusAca       = minusAcaFlag
     , stateProperty  = prop
     , knownReach     = knownR
@@ -386,8 +385,6 @@ setLibraryEnvironmentVariable = do
       return ()
     else do
       putStrLn $ "Could not find "++acaConfig++". Aborting"
-      putStrLn $ "If running in --docker mode, preserve HOME by running:"
-      putStrLn $ "  sudo --preserve-env=HOME alpaca foo.c"
       assert False (return ())
 
 debugMode :: String -> DebugMode

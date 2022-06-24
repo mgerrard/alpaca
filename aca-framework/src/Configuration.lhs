@@ -21,7 +21,6 @@ data Configuration = Configuration
   , dseParam :: String
   , makeCudParam :: Bool
   , chewCudParam :: String
-  , dockerParam :: Bool
   , minusAcaParam :: Bool
   , propertyParam :: String
   , knownReachParam :: Bool

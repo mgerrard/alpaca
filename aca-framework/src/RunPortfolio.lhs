@@ -33,14 +33,14 @@ import Reading
 type Thread = Async (Maybe AnalysisWitness)
 
 runPortfolio :: Program -> Portfolio -> Csc -> RunConfiguration -> IO EvidenceCollection
-runPortfolio prog pfolio csc (RunConfiguration InParallel d tag exitStrat bValid logPre exitFile dTool dock prp isMinAca hasReach) = do
+runPortfolio prog pfolio csc (RunConfiguration InParallel d tag exitStrat bValid logPre exitFile dTool prp isMinAca hasReach) = do
   {- update log : track total analysis runtime -}
-  threads <- launchPortfolio prog d tag logPre exitFile dTool dock prp isMinAca hasReach pfolio 
+  threads <- launchPortfolio prog d tag logPre exitFile dTool prp isMinAca hasReach pfolio 
   results <- pollUntilDone threads pfolio dTool exitStrat csc d bValid exitFile
   mapM_ uninterruptibleCancel threads
   return results
-runPortfolio prog pfolio csc (RunConfiguration InSequence d tag _ bValid logPre exitFile dTool dock prp isMinAca hasReach) = do
-  maybeWitnesses <- mapM (runAnalyzer prog d tag logPre exitFile dTool dock prp isMinAca hasReach) pfolio
+runPortfolio prog pfolio csc (RunConfiguration InSequence d tag _ bValid logPre exitFile dTool prp isMinAca hasReach) = do
+  maybeWitnesses <- mapM (runAnalyzer prog d tag logPre exitFile dTool prp isMinAca hasReach) pfolio
   let witnesses = catMaybes maybeWitnesses
   maybeEvidence <- mapM (verifyWitness csc dTool d bValid exitFile) witnesses
   let results = catMaybes maybeEvidence
@@ -57,8 +57,8 @@ verifyWitness csc dTool debug bValid exitFile witness = do
         then return $ (Just newlyClassified)
         else return $ Nothing
         
-launchPortfolio :: Program -> DebugMode -> Maybe Int -> FilePath -> FilePath -> DseTool -> Bool -> Property -> Bool -> Bool -> Portfolio -> IO [Thread]
-launchPortfolio prog d tag logPre ef dTool dock prp isMinAca hasReach pfolio = mapM (async . (runAnalyzer prog d tag logPre ef dTool dock prp isMinAca hasReach)) pfolio
+launchPortfolio :: Program -> DebugMode -> Maybe Int -> FilePath -> FilePath -> DseTool -> Property -> Bool -> Bool -> Portfolio -> IO [Thread]
+launchPortfolio prog d tag logPre ef dTool prp isMinAca hasReach pfolio = mapM (async . (runAnalyzer prog d tag logPre ef dTool prp isMinAca hasReach)) pfolio
 
 pollUntilDone :: [Thread] -> Portfolio -> DseTool -> ExitStrategy -> Csc -> DebugMode -> Bool -> FilePath -> IO EvidenceCollection
 pollUntilDone threads _ dTool strategy csc debug bValid exitFile = do
@@ -148,8 +148,8 @@ launchSeahorn cFile a t oDir _ logPre debug = do
   (_, stdOut, _) <- readProcessWithExitCode "timeout" args ""
   return stdOut
 
-runAnalyzer :: Program -> DebugMode -> Maybe Int -> FilePath -> FilePath -> DseTool -> Bool -> Property -> Bool -> Bool -> Analyzer -> IO (Maybe AnalysisWitness)
-runAnalyzer p d mTag logPre _ dTool dock prp isMinAca hasReach a@(Analyzer Seahorn _ _ _ _ _ _ _ _) = do
+runAnalyzer :: Program -> DebugMode -> Maybe Int -> FilePath -> FilePath -> DseTool -> Property -> Bool -> Bool -> Analyzer -> IO (Maybe AnalysisWitness)
+runAnalyzer p d mTag logPre _ dTool prp isMinAca hasReach a@(Analyzer Seahorn _ _ _ _ _ _ _ _) = do
   let outputDir = deriveOutputDir p a mTag
   createDirectoryIfMissing True outputDir
   let cFile = sourcePath p
@@ -165,21 +165,21 @@ runAnalyzer p d mTag logPre _ dTool dock prp isMinAca hasReach a@(Analyzer Seaho
     then do putStrLn rawResult
     else do return ()
 
-  result <- parseResult rawResult a p elapsedTime mTag True logPre dTool dock prp isMinAca hasReach
+  result <- parseResult rawResult a p elapsedTime mTag True logPre dTool prp isMinAca hasReach
   return result
-runAnalyzer p _ mTag logPre _ dTool dock prp isMinAca hasReach a@(Analyzer CIVL _ _ _ _ _ _ _ _) = do
+runAnalyzer p _ mTag logPre _ dTool prp isMinAca hasReach a@(Analyzer CIVL _ _ _ _ _ _ _ _) = do
   start <- getCurrentTime
   let t = deriveTimeout a mTag p
   rawResult <- symbolicExecution p t
   end <- getCurrentTime
   let elapsedTime = (realToFrac :: (Real a) => a -> Float) $ diffUTCTime end start
-  result <- parseResult rawResult a p elapsedTime mTag True logPre dTool dock prp isMinAca hasReach
+  result <- parseResult rawResult a p elapsedTime mTag True logPre dTool prp isMinAca hasReach
   return result
-runAnalyzer p d mTag logPre _ dTool dock prp isMinAca hasReach a = do
+runAnalyzer p d mTag logPre _ dTool prp isMinAca hasReach a = do
   let t = deriveTimeout a mTag p
   start <- getCurrentTime
   let debug = ((d == Full) || (d == Analyzers))
-  (exitCode, rawResult, stdErr) <- (executeAnalyzer p a t mTag debug logPre dock prp)
+  (exitCode, rawResult, stdErr) <- (executeAnalyzer p a t mTag debug logPre prp)
   end <- getCurrentTime
   let elapsedTime = (realToFrac :: (Real a) => a -> Float) $ diffUTCTime end start
   
@@ -190,7 +190,7 @@ runAnalyzer p d mTag logPre _ dTool dock prp isMinAca hasReach a = do
       putStrLn $ "EXIT CODE:\n" ++ (show exitCode)
     else do return ()
 
-  result <- parseResult rawResult a p elapsedTime mTag debug logPre dTool dock prp isMinAca hasReach
+  result <- parseResult rawResult a p elapsedTime mTag debug logPre dTool prp isMinAca hasReach
   if debug then do putStrLn $ "\n***\nAnalysis result for " ++ (show a) ++ ": " ++ (show result) ++ "\n***\n" else do return ()
   return result
 
@@ -201,12 +201,12 @@ deriveTimeout a Nothing (Program _ _ _ iter _) =
     else analysisTimeout a
 deriveTimeout a _ _ = generalizeTimeout a
 
-executeAnalyzer :: Program -> Analyzer -> Int -> Maybe Int -> Bool -> FilePath -> Bool -> Property -> IO (ExitCode, String, String)
-executeAnalyzer p a t mTag debug logPre dock prp = do
+executeAnalyzer :: Program -> Analyzer -> Int -> Maybe Int -> Bool -> FilePath -> Property -> IO (ExitCode, String, String)
+executeAnalyzer p a t mTag debug logPre prp = do
   let outputDir = deriveOutputDir p a mTag
   createDirectoryIfMissing True outputDir
   let cFile = sourcePath p
-  runBenchexec cFile a t outputDir mTag debug logPre dock prp
+  runBenchexec cFile a t outputDir mTag debug logPre prp
 
 runIkos :: FilePath -> Int -> IO (ExitCode, String, String)
 runIkos f _ = do
@@ -240,13 +240,13 @@ deriveOutputDir :: Program -> Analyzer -> Maybe Int -> FilePath
 deriveOutputDir p a Nothing = (iterLogPath p) ++ (show a)
 deriveOutputDir p a (Just tag) = (iterLogPath p) ++ (show tag) ++ "/" ++ (show a)
 
-executeValidator :: Program -> Analyzer -> Analyzer -> Maybe Int -> Bool -> FilePath -> Bool -> Property -> IO (ExitCode, String, String)
-executeValidator p validator concreteAnalyzer mTag debug logPre dock prp = do
+executeValidator :: Program -> Analyzer -> Analyzer -> Maybe Int -> Bool -> FilePath -> Property -> IO (ExitCode, String, String)
+executeValidator p validator concreteAnalyzer mTag debug logPre prp = do
   let outputDir = (deriveOutputDir p concreteAnalyzer mTag) ++ "/" ++ "validation"
   createDirectoryIfMissing True outputDir
   let timeout = 90 -- standard witness timeout
   let cFile = sourcePath p
-  (exitCode, stdout, stderr) <- runBenchexecValidator cFile validator timeout outputDir mTag debug logPre dock concreteAnalyzer prp
+  (exitCode, stdout, stderr) <- runBenchexecValidator cFile validator timeout outputDir mTag debug logPre concreteAnalyzer prp
 
   if debug
   then do
@@ -279,9 +279,9 @@ validatorSetup cFile a _ oDir mTag _ logPre concreteAnalyzer prp = do
   writeFile xmlHandle xmlString
   return outDir
 
-runBenchexecValidator :: FilePath -> Analyzer -> Int -> String -> Maybe Int -> Bool -> FilePath -> Bool -> Analyzer -> Property -> IO (ExitCode, String, String)
-runBenchexecValidator a b c d e f g False _ prp = runBenchexec a b c d e f g False prp
-runBenchexecValidator cFile a timeout oDir mTag debug logPre _ concreteAnalyzer prp = do
+runBenchexecValidator :: FilePath -> Analyzer -> Int -> String -> Maybe Int -> Bool -> FilePath -> Analyzer -> Property -> IO (ExitCode, String, String)
+runBenchexecValidator a b c d e f g _ prp = runBenchexec a b c d e f g prp
+runBenchexecValidator cFile a timeout oDir mTag debug logPre concreteAnalyzer prp = do
   outDir <- validatorSetup cFile a timeout oDir mTag debug logPre concreteAnalyzer prp
   let containerName = "portfolio"
   let args = ["-k", "5", (show timeout), 
@@ -299,8 +299,8 @@ aContainerName (Analyzer CPA_Seq _ _ _ _ _ _ _ _) = "cpa"
 aContainerName (Analyzer UAutomizer _ _ _ _ _ _ _ _) = "ua"
 aContainerName (Analyzer t _ _ _ _ _ _ _ _) = error $ "have not implemented docker container for"++(show t)
 
-runBenchexec :: FilePath -> Analyzer -> Int -> String -> Maybe Int -> Bool -> FilePath -> Bool -> Property -> IO (ExitCode, String, String)
-runBenchexec cFile a timeout oDir mTag debug logPre True prp = do
+runBenchexec :: FilePath -> Analyzer -> Int -> String -> Maybe Int -> Bool -> FilePath -> Property -> IO (ExitCode, String, String)
+runBenchexec cFile a timeout oDir mTag debug logPre prp = do
   currDir <- getCurrentDirectory
   baseDir <- getAnalyzerDir
   let pre = absolutePrefix logPre currDir
@@ -325,23 +325,6 @@ runBenchexec cFile a timeout oDir mTag debug logPre True prp = do
               containerName]
   if debug then putStrLn ("Call to alpaca-runtool:\n\n "++"timeout "++(show args)) else return ()
   readProcessWithExitCode "timeout" args ""
-runBenchexec cFile a timeout oDir mTag debug logPre False prp = do
-  currDir <- getCurrentDirectory
-  baseDir <- getAnalyzerDir
-  let aDir = analysisDir a
-  let pre = absolutePrefix logPre currDir
-  let outDir = absoluteOutDir pre oDir
-  let progPath = absoluteFullFile pre cFile
-  let uniquePath = programWithinToolDir progPath a
-  copyNonvalidatorFile a progPath uniquePath
-  let fullFile = absoluteFullFile pre cFile
-  let xmlString = constructXML a fullFile baseDir False prp
-  let xmlHandle = makeXmlHandle pre oDir a mTag
-  writeFile xmlHandle xmlString
-  script <- benchexecScript
-  let args = [script, cFile, xmlHandle, outDir, aDir, (show timeout)]
-  if debug then putStrLn ("Call to benchexec:\n\n "++"bash "++(show args)) else return ()
-  readProcessWithExitCode "bash" args ""
 
 copyNonvalidatorFile :: Analyzer -> FilePath -> FilePath -> IO ()
 copyNonvalidatorFile (Analyzer CPA_Validator _ _ _ _ _ _ _ _) _ _ = return ()
@@ -380,18 +363,18 @@ safeResult a t = AnalysisWitness {
       analysisTime=t,
       parsingTime=0}
                
-parseResult :: String -> Analyzer -> Program -> Float -> Maybe Int -> Bool -> FilePath -> DseTool -> Bool -> Property -> Bool -> Bool -> IO (Maybe AnalysisWitness)
-parseResult stdout a@(Analyzer Seahorn _ _ _ _ _ _ _ _) _ time _ _ _ _ _ _ _ _ = do
+parseResult :: String -> Analyzer -> Program -> Float -> Maybe Int -> Bool -> FilePath -> DseTool -> Property -> Bool -> Bool -> IO (Maybe AnalysisWitness)
+parseResult stdout a@(Analyzer Seahorn _ _ _ _ _ _ _ _) _ time _ _ _ _ _ _ _ = do
   let lastLine = last $ lines stdout
   if "unsat" `isInfixOf` lastLine
     then return $ (Just (safeResult a time))
     else return Nothing
-parseResult res a@(Analyzer CIVL _ _ _ _ _ _ _ _) p time mTag debug logPre dTool dock prp _ _ = do
+parseResult res a@(Analyzer CIVL _ _ _ _ _ _ _ _) p time mTag debug logPre dTool prp _ _ = do
   let summary = getCivlResultSummary res
   case summary of
-    FalseResult -> parseWitness a p time mTag debug logPre dTool dock prp
+    FalseResult -> parseWitness a p time mTag debug logPre dTool prp
     _ -> do return Nothing
-parseResult res a p time mTag debug logPre dTool dock prp False hasReach = do
+parseResult res a p time mTag debug logPre dTool prp False hasReach = do
   let path = deriveOutputDir p a mTag
   let summary = getResultSummary res
   case summary of
@@ -402,10 +385,10 @@ parseResult res a p time mTag debug logPre dTool dock prp False hasReach = do
           _ <- tryToGatherWitness path
           removeArtifacts path
           return $ validateResult a time
-    FalseResult -> parseWitness a p time mTag debug logPre dTool dock prp
+    FalseResult -> parseWitness a p time mTag debug logPre dTool prp
     _ -> do removeArtifacts path; return Nothing
 -- this case is for Vicuna
-parseResult res a p time mTag debug logPre dTool dock prp True _ = do
+parseResult res a p time mTag debug logPre dTool prp True _ = do
   let path = deriveOutputDir p a mTag
   let summary = getResultSummary res
   _ <- tryToGatherWitness path -- for Vicuna
@@ -456,20 +439,19 @@ tryToGatherWitness dir = do
           return (Just newHandle)
         else do return Nothing
 
-normalizedWitnessName :: FilePath -> FilePath -> Bool -> FilePath
-normalizedWitnessName _ _ True = "/home/alpaca_logs/witness.graphml"
-normalizedWitnessName pre w _ = pre ++ "/" ++ w
+normalizedWitnessName :: FilePath -> FilePath -> FilePath
+normalizedWitnessName pre w = pre ++ "/" ++ w
 
-normalizeWitness :: Maybe FilePath -> Program -> Analyzer -> Maybe Int -> Bool -> FilePath -> DseTool -> Bool -> Property -> IO (Maybe FilePath)
-normalizeWitness Nothing _ _ _ _ _ _ _ _ = return Nothing
-normalizeWitness f _ (Analyzer _ _ _ _ _ _ BranchDirectives _ _) _ _ _ _ _ _ = return f
-normalizeWitness f _ _ _ _ _ CpaSymExec _ _ = return f
-normalizeWitness (Just w) p a mTag debug logPre _ dock prp = do
+normalizeWitness :: Maybe FilePath -> Program -> Analyzer -> Maybe Int -> Bool -> FilePath -> DseTool -> Property -> IO (Maybe FilePath)
+normalizeWitness Nothing _ _ _ _ _ _ _ = return Nothing
+normalizeWitness f _ (Analyzer _ _ _ _ _ _ BranchDirectives _ _) _ _ _ _ _ = return f
+normalizeWitness f _ _ _ _ _ CpaSymExec _ = return f
+normalizeWitness (Just w) p a mTag debug logPre _ prp = do
   currDir <- getCurrentDirectory
   let pre = absolutePrefix logPre currDir
   let witness = pre ++ "/" ++ w
-  witnessValidator <- cpaValidator witness (normalizedWitnessName pre w dock)
-  _ <- executeValidator p witnessValidator a mTag debug logPre dock prp
+  witnessValidator <- cpaValidator witness (normalizedWitnessName pre w)
+  _ <- executeValidator p witnessValidator a mTag debug logPre prp
   let validatorDir = pre ++ "/" ++ (deriveOutputDir p a mTag) ++ "/validation"
   tryToGatherWitness validatorDir
 
@@ -519,12 +501,12 @@ removeDirectoryRecursiveIfExists dir = do
     then do removeDirectoryRecursive dir
     else do return ()
     
-parseWitness :: Analyzer -> Program -> Float -> Maybe Int -> Bool -> FilePath -> DseTool -> Bool -> Property -> IO (Maybe AnalysisWitness)
-parseWitness a p time mTag debug logPre CpaSymExec dock prp = do
+parseWitness :: Analyzer -> Program -> Float -> Maybe Int -> Bool -> FilePath -> DseTool -> Property -> IO (Maybe AnalysisWitness)
+parseWitness a p time mTag debug logPre CpaSymExec prp = do
   let pathPrefix = deriveOutputDir p a mTag
   start <- getCurrentTime
   w <- tryToGatherWitness pathPrefix
-  witness <- normalizeWitness w p a mTag debug logPre CpaSymExec dock prp
+  witness <- normalizeWitness w p a mTag debug logPre CpaSymExec prp
   removeArtifacts pathPrefix
   if isJust witness
     then do
@@ -543,11 +525,11 @@ parseWitness a p time mTag debug logPre CpaSymExec dock prp = do
                  parsingTime=pTime}
                  )
     else return Nothing
-parseWitness a p time mTag debug logPre dTool dock prp = do
+parseWitness a p time mTag debug logPre dTool prp = do
   let pathPrefix = deriveOutputDir p a mTag
   start <- getCurrentTime
   w <- tryToGatherWitness pathPrefix
-  witness <- normalizeWitness w p a mTag debug logPre dTool dock prp
+  witness <- normalizeWitness w p a mTag debug logPre dTool prp
   removeArtifacts pathPrefix
   if isJust witness
     then do

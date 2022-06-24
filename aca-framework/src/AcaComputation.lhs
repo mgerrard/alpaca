@@ -38,7 +38,6 @@ data AcaState = AcaState {
   dseTool        :: DseTool,
   makeCud        :: Bool,
   chewCud        :: String,
-  dockerPort     :: Bool,
   minusAca       :: Bool,
   stateProperty  :: Property,
   knownReach     :: Bool
@@ -365,8 +364,8 @@ setupRunConfiguration tag = do
   debugMode <- getDebugMode; exitStrat <- getExitStrategy;
   bValid <- shouldBlockValid; parallelism <- getParallelism
   logPre <- getLogPrefix; exitF <- getExitSummaryFile; dTool <- getDseTool
-  dockerFlag <- getDockerFlag; prp <- getProp; isMinAca <- getIsMinAca; hasReach <- getHasReach
-  return (RunConfiguration parallelism debugMode tag exitStrat bValid logPre exitF dTool dockerFlag prp isMinAca hasReach)
+  prp <- getProp; isMinAca <- getIsMinAca; hasReach <- getHasReach
+  return (RunConfiguration parallelism debugMode tag exitStrat bValid logPre exitF dTool prp isMinAca hasReach)
 
 getHasReach :: AcaComputation Bool
 getHasReach = do
@@ -377,11 +376,6 @@ getIsMinAca :: AcaComputation Bool
 getIsMinAca = do
   st <- get 
   return $ minusAca st
-
-getDockerFlag :: AcaComputation Bool
-getDockerFlag = do
-  st <- get
-  return $ dockerPort st
 
 getDseTool :: AcaComputation DseTool
 getDseTool = do

@@ -136,9 +136,6 @@ configuration = Configuration
       <> value ""
       <> help "Pass in .cud file to see if ALPACA can chew on a subspace." )
   <*> switch
-      (  long "docker"
-      <> help "Run portfolio using docker; requires sudo privileges" )
-  <*> switch
       (  long "minus-aca"
       <> help "Run portfolio once on uninstrumented file" )
   <*> strOption
