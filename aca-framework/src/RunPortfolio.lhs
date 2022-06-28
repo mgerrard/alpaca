@@ -293,6 +293,8 @@ runValidator cFile a timeout oDir mTag debug logPre concreteAnalyzer prp = do
 
 aContainerName :: Analyzer -> String
 aContainerName (Analyzer CPA_Seq _ _ _ _ _ _ _ _) = "cpa"
+aContainerName (Analyzer CPA_BAM_BnB _ _ _ _ _ _ _ _) = "cpabnb"
+aContainerName (Analyzer CPA_BAM_SMG _ _ _ _ _ _ _ _) = "cpasmg"
 aContainerName (Analyzer UAutomizer _ _ _ _ _ _ _ _) = "ua"
 aContainerName (Analyzer UKojak _ _ _ _ _ _ _ _) = "uk"
 aContainerName (Analyzer UTaipan _ _ _ _ _ _ _ _) = "ut"
