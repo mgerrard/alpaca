@@ -298,6 +298,7 @@ aContainerName (Analyzer CPA_BAM_SMG _ _ _ _ _ _ _ _) = "cpasmg"
 aContainerName (Analyzer UAutomizer _ _ _ _ _ _ _ _) = "ua"
 aContainerName (Analyzer UKojak _ _ _ _ _ _ _ _) = "uk"
 aContainerName (Analyzer UTaipan _ _ _ _ _ _ _ _) = "ut"
+aContainerName (Analyzer VeriAbs _ _ _ _ _ _ _ _) = "veriabs"
 aContainerName (Analyzer t _ _ _ _ _ _ _ _) = error $ "have not implemented docker container for"++(show t)
 
 runTool :: FilePath -> Analyzer -> Int -> String -> Maybe Int -> Bool -> FilePath -> Property -> IO (ExitCode, String, String)
