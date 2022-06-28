@@ -294,6 +294,8 @@ runValidator cFile a timeout oDir mTag debug logPre concreteAnalyzer prp = do
 aContainerName :: Analyzer -> String
 aContainerName (Analyzer CPA_Seq _ _ _ _ _ _ _ _) = "cpa"
 aContainerName (Analyzer UAutomizer _ _ _ _ _ _ _ _) = "ua"
+aContainerName (Analyzer UKojak _ _ _ _ _ _ _ _) = "uk"
+aContainerName (Analyzer UTaipan _ _ _ _ _ _ _ _) = "ut"
 aContainerName (Analyzer t _ _ _ _ _ _ _ _) = error $ "have not implemented docker container for"++(show t)
 
 runTool :: FilePath -> Analyzer -> Int -> String -> Maybe Int -> Bool -> FilePath -> Property -> IO (ExitCode, String, String)
