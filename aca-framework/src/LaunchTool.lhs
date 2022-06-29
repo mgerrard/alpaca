@@ -8,12 +8,13 @@ import Portfolio
 data AnalysisResult = FalseResult | TrueResult | UnknownResult deriving (Show, Eq)
 
 falseFound :: String -> Analyzer -> Bool
+falseFound s (Analyzer TwoLS _ _ _ _ _ _ _ _) = isInfixOf "VERIFICATION FAILED" s
 falseFound s (Analyzer VeriAbs _ _ _ _ _ _ _ _) = isInfixOf "VERIABS_VERIFICATION_FAILED" s
-falseFound s (Analyzer VeriFuzz _ _ _ _ _ _ _ _) = isInfixOf "FALSE(unreach-call)" s
---falseFound s (Analyzer VeriFuzz _ _ _ _ _ _ _ _) = (isInfixOf "FALSE(unreach-call)" s) || (isInfixOf "VERIFUZZ_VERIFICATION_FAILED" s)
+falseFound s (Analyzer VeriFuzz _ _ _ _ _ _ _ _) = (isInfixOf "FALSE(unreach-call)" s) || (isInfixOf "VERIFUZZ_VERIFICATION_FAILED" s)
 falseFound s _ = isInfixOf "esult: FALSE" s
 
 trueFound :: String -> Analyzer -> Bool
+trueFound s (Analyzer TwoLS _ _ _ _ _ _ _ _) = isInfixOf "VERIFICATION SUCCESSFUL" s
 trueFound s (Analyzer VeriAbs _ _ _ _ _ _ _ _) = isInfixOf "VERIABS_VERIFICATION_SUCCESSFUL" s
 trueFound s (Analyzer VeriFuzz _ _ _ _ _ _ _ _) = isInfixOf "VERIFUZZ_VERIFICATION_SUCCESSFUL" s
 trueFound s _ = isInfixOf "esult: TRUE" s
