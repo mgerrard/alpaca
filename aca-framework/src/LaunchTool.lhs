@@ -7,20 +7,24 @@ import Portfolio
 
 data AnalysisResult = FalseResult | TrueResult | UnknownResult deriving (Show, Eq)
 
-falseFound :: String -> Bool
-falseFound s = isInfixOf "esult: FALSE" s || isInfixOf "VERIABS_VERIFICATION_FAILED" s
---falseFound s = isInfixOf " false(unreach-call) " s || isInfixOf " false(valid-deref) " s || isInfixOf " false(valid-free) " s || isInfixOf " false(valid-memtrack) " s || isInfixOf " false(no-overflow) " s
+falseFound :: String -> Analyzer -> Bool
+falseFound s (Analyzer VeriAbs _ _ _ _ _ _ _ _) = isInfixOf "VERIABS_VERIFICATION_FAILED" s
+falseFound s (Analyzer VeriFuzz _ _ _ _ _ _ _ _) = isInfixOf "FALSE(unreach-call)" s
+--falseFound s (Analyzer VeriFuzz _ _ _ _ _ _ _ _) = (isInfixOf "FALSE(unreach-call)" s) || (isInfixOf "VERIFUZZ_VERIFICATION_FAILED" s)
+falseFound s _ = isInfixOf "esult: FALSE" s
 
--- temporary change, need to make an interface for each tool to parse output
-getResultSummary :: String -> AnalysisResult
-getResultSummary output =
-  let trueFound = (isInfixOf "esult: TRUE" output) || (isInfixOf "VERIABS_VERIFICATION_SUCCESSFUL" output)
-  in
-    if falseFound output
-      then FalseResult
-      else if trueFound
-        then TrueResult
-        else UnknownResult
+trueFound :: String -> Analyzer -> Bool
+trueFound s (Analyzer VeriAbs _ _ _ _ _ _ _ _) = isInfixOf "VERIABS_VERIFICATION_SUCCESSFUL" s
+trueFound s (Analyzer VeriFuzz _ _ _ _ _ _ _ _) = isInfixOf "VERIFUZZ_VERIFICATION_SUCCESSFUL" s
+trueFound s _ = isInfixOf "esult: TRUE" s
+
+getResultSummary :: String -> Analyzer -> AnalysisResult
+getResultSummary output a =
+  if falseFound output a
+    then FalseResult
+    else if trueFound output a
+      then TrueResult
+      else UnknownResult
 
 propFilePath :: FilePath -> Bool -> Property -> String
 propFilePath aDir False prp = aDir++"/"++(propFile prp)

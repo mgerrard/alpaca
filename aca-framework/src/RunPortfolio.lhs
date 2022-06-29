@@ -299,6 +299,7 @@ aContainerName (Analyzer UAutomizer _ _ _ _ _ _ _ _) = "ua"
 aContainerName (Analyzer UKojak _ _ _ _ _ _ _ _) = "uk"
 aContainerName (Analyzer UTaipan _ _ _ _ _ _ _ _) = "ut"
 aContainerName (Analyzer VeriAbs _ _ _ _ _ _ _ _) = "veriabs"
+aContainerName (Analyzer VeriFuzz _ _ _ _ _ _ _ _) = "verifuzz"
 aContainerName (Analyzer t _ _ _ _ _ _ _ _) = error $ "have not implemented docker container for"++(show t)
 
 runTool :: FilePath -> Analyzer -> Int -> String -> Maybe Int -> Bool -> FilePath -> Property -> IO (ExitCode, String, String)
@@ -373,7 +374,7 @@ parseResult res a@(Analyzer CIVL _ _ _ _ _ _ _ _) p time mTag debug logPre dTool
     _ -> do return Nothing
 parseResult res a p time mTag debug logPre dTool prp False hasReach = do
   let path = deriveOutputDir p a mTag
-  let summary = getResultSummary res
+  let summary = getResultSummary res a
   case summary of
     TrueResult -> do
       if hasReach && ((iteration p)==1)
@@ -387,7 +388,7 @@ parseResult res a p time mTag debug logPre dTool prp False hasReach = do
 -- this case is for Vicuna
 parseResult res a p time mTag debug logPre dTool prp True _ = do
   let path = deriveOutputDir p a mTag
-  let summary = getResultSummary res
+  let summary = getResultSummary res a
   _ <- tryToGatherWitness path -- for Vicuna
   let r = vicunaData summary a prp
   putStrLn $ show r
