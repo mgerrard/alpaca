@@ -298,6 +298,7 @@ aContainerName (Analyzer CPA_Seq _ _ _ _ _ _ _ _) = "cpa"
 aContainerName (Analyzer CPA_Validator _ _ _ _ _ _ _ _) = "cpavalidator"
 aContainerName (Analyzer CPA_BAM_BnB _ _ _ _ _ _ _ _) = "cpabnb"
 aContainerName (Analyzer CPA_BAM_SMG _ _ _ _ _ _ _ _) = "cpasmg"
+aContainerName (Analyzer ESBMC _ _ _ _ _ _ _ _) = "esbmc"
 aContainerName (Analyzer UAutomizer _ _ _ _ _ _ _ _) = "ua"
 aContainerName (Analyzer UKojak _ _ _ _ _ _ _ _) = "uk"
 aContainerName (Analyzer UTaipan _ _ _ _ _ _ _ _) = "ut"
@@ -661,7 +662,6 @@ symbolicExecution (Program uniquePath _ _ _ _) t = do
 directedCivlArgs :: FilePath -> FilePath -> Bool -> IO [String]
 directedCivlArgs program directFile valid = do
   civlJar <- getCivlJar
-  putStrLn $ "************** the CIVL JAR IS: "++civlJar
   directFile' <- makeAbsolute directFile
   let directArg = "-direct="++directFile'
   program' <- makeAbsolute program
@@ -679,13 +679,8 @@ sliceCivlArgs program valid = do
 
 runDirectedCivl :: (FilePath, FilePath) -> DebugMode -> Bool -> IO String
 runDirectedCivl (program, directFile) d valid = do
-  putStrLn "running directed civl"
   args <- directedCivlArgs program directFile valid
-  putStrLn "** ## args:"
-  putStrLn $ concat $ intersperse " " $ args
   (exitCode, stdOut, stdErr) <- readProcessWithExitCode "java" args ""
-  putStrLn "stdout"
-  putStrLn stdOut
   directedDebug directFile (exitCode, stdOut, stdErr) d valid
   return stdOut
 
