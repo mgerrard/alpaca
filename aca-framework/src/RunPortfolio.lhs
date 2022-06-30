@@ -247,7 +247,6 @@ executeValidator p validator concreteAnalyzer mTag debug logPre prp = do
   let timeout = 90 -- standard witness timeout
   let cFile = sourcePath p
   (exitCode, stdout, stderr) <- runValidator cFile validator timeout outputDir mTag debug logPre concreteAnalyzer prp
-
   if debug
   then do
     putStrLn $ "Validator STDERR:\n" ++ stderr
@@ -274,27 +273,29 @@ validatorSetup cFile a _ oDir mTag _ logPre concreteAnalyzer prp = do
   return outDir
 
 runValidator :: FilePath -> Analyzer -> Int -> String -> Maybe Int -> Bool -> FilePath -> Analyzer -> Property -> IO (ExitCode, String, String)
-runValidator a b c d e f g _ prp = runTool a b c d e f g prp
-runValidator cFile a timeout oDir mTag debug logPre concreteAnalyzer prp = error "need to implement concrete analyzer"
-{-
 runValidator cFile a timeout oDir mTag debug logPre concreteAnalyzer prp = do
-  outDir <- validatorSetup cFile a timeout oDir mTag debug logPre concreteAnalyzer prp
-  let containerName = "portfolio"
+  currDir <- getCurrentDirectory
+  let pre = absolutePrefix logPre currDir
+  let outDir = absoluteOutDir pre oDir
+  let progPath = absoluteFullFile pre cFile
+  let uniqParentDir = uniqueParent progPath concreteAnalyzer
+
+--  outDir <- validatorSetup cFile a timeout oDir mTag debug logPre concreteAnalyzer prp
+  let containerName = aContainerName a
   let args = ["-k", "5", (show timeout), 
               "docker",
               "run",
-              "--privileged",
-              "-v",(outDir++":"++"/home/alpaca_logs"),
-              "-v","/sys/fs/cgroup:/sys/fs/cgroup:rw",
+              "-v",(outDir++":"++"/alpaca_out"),
+              "-v",(uniqParentDir++":"++"/alpaca_in"),	      
               containerName]
-  if debug then putStrLn ("Call to docker-benchexec:\n\n "++"timeout "++(show args)) else return ()
+  if debug then putStrLn ("Call to alpaca-runvalidator:\n\n "++"timeout "++(show args)) else return ()
   readProcessWithExitCode "timeout" args ""
--}
 
 aContainerName :: Analyzer -> String
 aContainerName (Analyzer TwoLS _ _ _ _ _ _ _ _) = "twols"
 aContainerName (Analyzer CBMC _ _ _ _ _ _ _ _) = "cbmc"
 aContainerName (Analyzer CPA_Seq _ _ _ _ _ _ _ _) = "cpa"
+aContainerName (Analyzer CPA_Validator _ _ _ _ _ _ _ _) = "cpavalidator"
 aContainerName (Analyzer CPA_BAM_BnB _ _ _ _ _ _ _ _) = "cpabnb"
 aContainerName (Analyzer CPA_BAM_SMG _ _ _ _ _ _ _ _) = "cpasmg"
 aContainerName (Analyzer UAutomizer _ _ _ _ _ _ _ _) = "ua"
