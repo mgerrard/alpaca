@@ -9,6 +9,6 @@ RUN unzip pinaka.zip
 RUN apt-get install -y gcc-multilib
 
 ADD PropertyUnreachCall.prp /PropertyUnreachCall.prp
-#
+
 ADD launch.sh /launch.sh
 ENTRYPOINT ["sh", "/launch.sh"]
