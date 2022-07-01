@@ -20,6 +20,7 @@ trueFound :: String -> Analyzer -> Bool
 trueFound s (Analyzer CBMC _ _ _ _ _ _ _ _) = isInfixOf "VERIFICATION SUCCESSFUL" s
 trueFound s (Analyzer ESBMC _ _ _ _ _ _ _ _) = isInfixOf "TRUE" s
 trueFound s (Analyzer Symbiotic _ _ _ _ _ _ _ _) = isInfixOf "RESULT: true" s
+trueFound s (Analyzer Smack _ _ _ _ _ _ _ _) = isInfixOf "SMACK found no errors" s
 trueFound s (Analyzer TwoLS _ _ _ _ _ _ _ _) = isInfixOf "VERIFICATION SUCCESSFUL" s
 trueFound s (Analyzer VeriAbs _ _ _ _ _ _ _ _) = isInfixOf "VERIABS_VERIFICATION_SUCCESSFUL" s
 trueFound s (Analyzer VeriFuzz _ _ _ _ _ _ _ _) = isInfixOf "VERIFUZZ_VERIFICATION_SUCCESSFUL" s
