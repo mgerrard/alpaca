@@ -299,13 +299,14 @@ aContainerName (Analyzer CPA_Validator _ _ _ _ _ _ _ _) = "cpavalidator"
 aContainerName (Analyzer CPA_BAM_BnB _ _ _ _ _ _ _ _) = "cpabnb"
 aContainerName (Analyzer CPA_BAM_SMG _ _ _ _ _ _ _ _) = "cpasmg"
 aContainerName (Analyzer ESBMC _ _ _ _ _ _ _ _) = "esbmc"
+aContainerName (Analyzer Pesco _ _ _ _ _ _ _ _) = "pesco"
 aContainerName (Analyzer Symbiotic _ _ _ _ _ _ _ _) = "symbiotic"
 aContainerName (Analyzer UAutomizer _ _ _ _ _ _ _ _) = "ua"
 aContainerName (Analyzer UKojak _ _ _ _ _ _ _ _) = "uk"
 aContainerName (Analyzer UTaipan _ _ _ _ _ _ _ _) = "ut"
 aContainerName (Analyzer VeriAbs _ _ _ _ _ _ _ _) = "veriabs"
 aContainerName (Analyzer VeriFuzz _ _ _ _ _ _ _ _) = "verifuzz"
-aContainerName (Analyzer t _ _ _ _ _ _ _ _) = error $ "have not implemented docker container for"++(show t)
+aContainerName (Analyzer t _ _ _ _ _ _ _ _) = error $ "oops: i cannot find docker container for "++(show t)
 
 runTool :: FilePath -> Analyzer -> Int -> String -> Maybe Int -> Bool -> FilePath -> Property -> IO (ExitCode, String, String)
 runTool cFile a timeout oDir mTag debug logPre prp = do
