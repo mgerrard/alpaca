@@ -10,6 +10,7 @@ data AnalysisResult = FalseResult | TrueResult | UnknownResult deriving (Show, E
 falseFound :: String -> Analyzer -> Bool
 falseFound s (Analyzer CBMC _ _ _ _ _ _ _ _) = isInfixOf "VERIFICATION FAILED" s
 falseFound s (Analyzer ESBMC _ _ _ _ _ _ _ _) = isInfixOf "FALSE_REACH" s
+falseFound s (Analyzer Infer _ _ _ _ _ _ _ _) = False
 falseFound s (Analyzer Pinaka _ _ _ _ _ _ _ _) = isInfixOf "VERIFICATION FAILED (ReachSafety)" s
 falseFound s (Analyzer Symbiotic _ _ _ _ _ _ _ _) = isInfixOf "RESULT: false" s
 falseFound s (Analyzer TwoLS _ _ _ _ _ _ _ _) = isInfixOf "VERIFICATION FAILED" s
@@ -20,6 +21,7 @@ falseFound s _ = isInfixOf "esult: FALSE" s
 trueFound :: String -> Analyzer -> Bool
 trueFound s (Analyzer CBMC _ _ _ _ _ _ _ _) = isInfixOf "VERIFICATION SUCCESSFUL" s
 trueFound s (Analyzer ESBMC _ _ _ _ _ _ _ _) = isInfixOf "TRUE" s
+trueFound s (Analyzer Infer _ _ _ _ _ _ _ _) = isInfixOf "Result:true" s
 trueFound s (Analyzer Pinaka _ _ _ _ _ _ _ _) = isInfixOf "VERIFICATION SUCCESSFUL" s
 trueFound s (Analyzer Symbiotic _ _ _ _ _ _ _ _) = isInfixOf "RESULT: true" s
 trueFound s (Analyzer SMACK _ _ _ _ _ _ _ _) = isInfixOf "SMACK found no errors" s
