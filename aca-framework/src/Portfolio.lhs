@@ -1,4 +1,4 @@
-The following 23 analysis tools were chosen to be in
+The following 22 analysis tools were chosen to be in
 ALPACA because
 they were contestants in the 2022 Software Verification
 Competition (SV-COMP) in one (or more) of the three
