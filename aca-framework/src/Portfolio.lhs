@@ -1,4 +1,4 @@
-The following 22 analysis tools were chosen to be in
+The following 21 analysis tools were chosen to be in
 ALPACA because
 they were contestants in the 2022 Software Verification
 Competition (SV-COMP) in one (or more) of the three
@@ -7,7 +7,10 @@ FalsificationOverall. (DIVINE was dropped because its
 performance was terrible. Crux was dropped because its
 performance contained too many false negatives, which
 we do not have the ability to refute at this point, i.e.,
-ALPACA short-circuits upon finding a TRUE result)
+ALPACA short-circuits upon finding a TRUE result. Infer
+is dropped because their poor performance is off-the-charts:
+-50,000 in ReachSafety, so bad that they do not appear
+on the generated gnuplots.)
 
 The tools are:
 
@@ -21,7 +24,6 @@ The tools are:
 - ESBMC-kind
 - Goblint
 - Graves-CPA
-- Infer
 - LART
 - PeSCo
 - Pinaka
@@ -91,7 +93,6 @@ data AnalysisTool =
   | ESBMC
   | Goblint
   | Graves
-  | Infer
   | InterpChecker
   | LART
   | Pesco
@@ -145,7 +146,6 @@ correspondingTool p "veriFuzz" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==VeriFuz
 correspondingTool p "theta" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==Theta) p
 correspondingTool p "smack" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==SMACK) p
 correspondingTool p "lart" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==LART) p
-correspondingTool p "infer" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==Infer) p
 correspondingTool p "graves" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==Graves) p
 correspondingTool p "goblint" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==Goblint) p
 correspondingTool p "cvtParPort" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==CVT_ParPort) p
@@ -309,18 +309,6 @@ fullPortfolio timeout gTimeout iTimeout = do
         ("-setprop", Just "cpa.arg.witness.exportSourcecode=true"),
         ("-timelimit", Just "900 s")],
       -- uses safe CPA analyses (check with Will)
-      safeOverapproximation = True,
-      analysisTimeout = timeout,
-      witnessType = BranchDirectives,
-      generalizeTimeout = gTimeout,
-      initTimeout = iTimeout
-      }
-    infer = Analyzer {
-      analysisTool = Infer,
-      analysisName = "infer",
-      analysisDir = portfolioDir ++ "Infer",
-      analysisOptions = [],
-      -- uses abstract interpretation
       safeOverapproximation = True,
       analysisTimeout = timeout,
       witnessType = BranchDirectives,
@@ -528,5 +516,5 @@ fullPortfolio timeout gTimeout iTimeout = do
       generalizeTimeout = gTimeout,
       initTimeout = iTimeout
       }
-  return [cpaSeq,uAutomizer,esbmc,pesco,symbiotic,veriAbs,twoLs,cbmc,uTaipan,uKojak,pinaka,seahorn,cpabamsmg,cpabambnb,cvtalgosel,cvtparport,goblint,graves,infer,lart,smack,theta,veriFuzz]
+  return [cpaSeq,uAutomizer,esbmc,pesco,symbiotic,veriAbs,twoLs,cbmc,uTaipan,uKojak,pinaka,seahorn,cpabamsmg,cpabambnb,cvtalgosel,cvtparport,goblint,graves,lart,smack,theta,veriFuzz]
 \end{code}
