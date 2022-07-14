@@ -1,9 +1,10 @@
-The following 24 analysis tools were chosen to be in
+The following 23 analysis tools were chosen to be in
 ALPACA because
 they were contestants in the 2022 Software Verification
 Competition (SV-COMP) in one (or more) of the three
 categories: ReachSafety, SoftwareSystems, or
-FalsificationOverall.
+FalsificationOverall. (DIVINE was dropped because its
+performance was terrible.)
 
 The tools are:
 
@@ -15,7 +16,6 @@ The tools are:
 - CPA-BAM-SMG
 - CPAchecker-2-1
 - Crux
-- DIVINE
 - ESBMC-kind
 - Goblint
 - Graves-CPA
@@ -87,7 +87,6 @@ data AnalysisTool =
   | CVT_AlgoSel
   | CVT_ParPort
   | DepthK
-  | DIVINE
   | ESBMC
   | Goblint
   | Graves
@@ -148,7 +147,6 @@ correspondingTool p "lart" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==LART) p
 correspondingTool p "infer" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==Infer) p
 correspondingTool p "graves" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==Graves) p
 correspondingTool p "goblint" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==Goblint) p
-correspondingTool p "divine" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==DIVINE) p
 correspondingTool p "cvtParPort" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==CVT_ParPort) p
 correspondingTool p "cvtAlgoSel" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==CVT_AlgoSel) p
 correspondingTool p "crux" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==Crux) p
@@ -292,18 +290,6 @@ fullPortfolio timeout gTimeout iTimeout = do
         ("--cache-dir", Just "cache"),
         ("--no-cache-update", Nothing),
 	("--use-python-processes", Nothing)],
-      -- not sure if this is safe
-      safeOverapproximation = False,
-      analysisTimeout = timeout,
-      witnessType = BranchDirectives,
-      generalizeTimeout = gTimeout,
-      initTimeout = iTimeout
-      }
-    divine = Analyzer {
-      analysisTool = DIVINE,
-      analysisName = "divine",
-      analysisDir = portfolioDir ++ "DIVINE",
-      analysisOptions = [],
       -- not sure if this is safe
       safeOverapproximation = False,
       analysisTimeout = timeout,
