@@ -1,4 +1,4 @@
-The following 21 analysis tools were chosen to be in
+The following 19 analysis tools were chosen to be in
 ALPACA because
 they were contestants in the 2022 Software Verification
 Competition (SV-COMP) in one (or more) of the three
@@ -16,8 +16,6 @@ The tools are:
 
 - 2LS
 - CBMC
-- CVT-AlgoSel
-- CVT-ParPort
 - CPA-BAM-BnB
 - CPA-BAM-SMG
 - CPAchecker-2-1
@@ -87,8 +85,6 @@ data AnalysisTool =
   | CPA_BAM_SMG
   | CPA_Seq
   | CPA_Validator
-  | CVT_AlgoSel
-  | CVT_ParPort
   | DepthK
   | ESBMC
   | Goblint
@@ -148,8 +144,6 @@ correspondingTool p "smack" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==SMACK) p
 correspondingTool p "lart" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==LART) p
 correspondingTool p "graves" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==Graves) p
 correspondingTool p "goblint" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==Goblint) p
-correspondingTool p "cvtParPort" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==CVT_ParPort) p
-correspondingTool p "cvtAlgoSel" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==CVT_AlgoSel) p
 correspondingTool p "cpaBamBnB" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==CPA_BAM_BnB) p
 correspondingTool p "cpaBamSmg" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==CPA_BAM_SMG) p
 correspondingTool p "cpaSeq" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==CPA_Seq) p
@@ -249,37 +243,6 @@ fullPortfolio timeout gTimeout iTimeout = do
       ],
       -- think this is safe
       safeOverapproximation = True,
-      analysisTimeout = timeout,
-      witnessType = BranchDirectives,
-      generalizeTimeout = gTimeout,
-      initTimeout = iTimeout
-      }
-    cvtalgosel = Analyzer {
-      analysisTool = CVT_AlgoSel,
-      analysisName = "cvtalgosel",
-      analysisDir = portfolioDir ++ "CVT_AlgoSel",
-      analysisOptions = [
-        ("verifier-algo-selection.cvt", Nothing),
-        ("--cache-dir", Just "cache"),
-        ("--no-cache-update", Nothing)],
-      -- not sure if this is safe
-      safeOverapproximation = False,
-      analysisTimeout = timeout,
-      witnessType = BranchDirectives,
-      generalizeTimeout = gTimeout,
-      initTimeout = iTimeout
-      }
-    cvtparport = Analyzer {
-      analysisTool = CVT_ParPort,
-      analysisName = "cvtparport",
-      analysisDir = portfolioDir ++ "CVT_ParPort",
-      analysisOptions = [
-        ("verifier-parallel-portfolio.cvt", Nothing),
-        ("--cache-dir", Just "cache"),
-        ("--no-cache-update", Nothing),
-	("--use-python-processes", Nothing)],
-      -- not sure if this is safe
-      safeOverapproximation = False,
       analysisTimeout = timeout,
       witnessType = BranchDirectives,
       generalizeTimeout = gTimeout,
@@ -516,5 +479,5 @@ fullPortfolio timeout gTimeout iTimeout = do
       generalizeTimeout = gTimeout,
       initTimeout = iTimeout
       }
-  return [cpaSeq,uAutomizer,esbmc,pesco,symbiotic,veriAbs,twoLs,cbmc,uTaipan,uKojak,pinaka,seahorn,cpabamsmg,cpabambnb,cvtalgosel,cvtparport,goblint,graves,lart,smack,theta,veriFuzz]
+  return [cpaSeq,uAutomizer,esbmc,pesco,symbiotic,veriAbs,twoLs,cbmc,uTaipan,uKojak,pinaka,seahorn,cpabamsmg,cpabambnb,goblint,graves,lart,smack,theta,veriFuzz]
 \end{code}
