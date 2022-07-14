@@ -51,7 +51,7 @@ configuration = Configuration
       <> showDefault
       <> metavar "FILTER"
       <> value "all"
-      <> help "(all | allDock | cpaSeq | uAutomizer | veriAbs | pesco | symbiotic | esbmc | twoLs | cbmc | uTaipan | uKojak | pinaka | cpaBamSmg | cpaBamBnB | crux | cvtAlgoSel | cvtParPort | goblint | graves | infer | lart | smack | theta | veriFuzz | (comma-sep. string of tools))")
+      <> help "(all | allDock | cpaSeq | uAutomizer | veriAbs | pesco | symbiotic | esbmc | twoLs | cbmc | uTaipan | uKojak | pinaka | cpaBamSmg | cpaBamBnB | cvtAlgoSel | cvtParPort | goblint | graves | infer | lart | smack | theta | veriFuzz | (comma-sep. string of tools))")
   <*> option auto
       (  long "generalize-timeout"
       <> help "global t.o. (in s) for generalization phase"

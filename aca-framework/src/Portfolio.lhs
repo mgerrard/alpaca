@@ -4,7 +4,10 @@ they were contestants in the 2022 Software Verification
 Competition (SV-COMP) in one (or more) of the three
 categories: ReachSafety, SoftwareSystems, or
 FalsificationOverall. (DIVINE was dropped because its
-performance was terrible.)
+performance was terrible. Crux was dropped because its
+performance contained too many false negatives, which
+we do not have the ability to refute at this point, i.e.,
+ALPACA short-circuits upon finding a TRUE result)
 
 The tools are:
 
@@ -15,7 +18,6 @@ The tools are:
 - CPA-BAM-BnB
 - CPA-BAM-SMG
 - CPAchecker-2-1
-- Crux
 - ESBMC-kind
 - Goblint
 - Graves-CPA
@@ -83,7 +85,6 @@ data AnalysisTool =
   | CPA_BAM_SMG
   | CPA_Seq
   | CPA_Validator
-  | Crux
   | CVT_AlgoSel
   | CVT_ParPort
   | DepthK
@@ -149,7 +150,6 @@ correspondingTool p "graves" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==Graves) p
 correspondingTool p "goblint" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==Goblint) p
 correspondingTool p "cvtParPort" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==CVT_ParPort) p
 correspondingTool p "cvtAlgoSel" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==CVT_AlgoSel) p
-correspondingTool p "crux" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==Crux) p
 correspondingTool p "cpaBamBnB" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==CPA_BAM_BnB) p
 correspondingTool p "cpaBamSmg" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==CPA_BAM_SMG) p
 correspondingTool p "cpaSeq" = find (\(Analyzer a _ _ _ _ _ _ _ _)->a==CPA_Seq) p
@@ -248,18 +248,6 @@ fullPortfolio timeout gTimeout iTimeout = do
         ("-timelimit", Just "900 s")
       ],
       -- think this is safe
-      safeOverapproximation = True,
-      analysisTimeout = timeout,
-      witnessType = BranchDirectives,
-      generalizeTimeout = gTimeout,
-      initTimeout = iTimeout
-      }
-    crux = Analyzer {
-      analysisTool = Crux,
-      analysisName = "crux",
-      analysisDir = portfolioDir ++ "Crux",
-      analysisOptions = [],
-      -- uses symbolic reasoning to check tests exhaustively
       safeOverapproximation = True,
       analysisTimeout = timeout,
       witnessType = BranchDirectives,
@@ -540,5 +528,5 @@ fullPortfolio timeout gTimeout iTimeout = do
       generalizeTimeout = gTimeout,
       initTimeout = iTimeout
       }
-  return [cpaSeq,uAutomizer,esbmc,pesco,symbiotic,veriAbs,twoLs,cbmc,uTaipan,uKojak,pinaka,seahorn,cpabamsmg,cpabambnb,crux,cvtalgosel,cvtparport,divine,goblint,graves,infer,lart,smack,theta,veriFuzz]
+  return [cpaSeq,uAutomizer,esbmc,pesco,symbiotic,veriAbs,twoLs,cbmc,uTaipan,uKojak,pinaka,seahorn,cpabamsmg,cpabambnb,cvtalgosel,cvtparport,goblint,graves,infer,lart,smack,theta,veriFuzz]
 \end{code}
