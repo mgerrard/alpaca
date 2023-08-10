@@ -33,6 +33,8 @@ First Pass:
    just prepend the statement:
      if (1) { __VERIFIER_error(); }
    to each call of the target function
+ - if a function is given to uninterpret, replace its body
+   with a nondeterministic variable of the appropriate type
 
 Second Pass:
  - Add global initialization of instrumentation variables
@@ -59,6 +61,7 @@ data TransState = TransState
     transCsc :: Maybe Csc,
     transPartition :: Maybe CscPartition,
     targetFunction :: String,
+    uninterpFunction :: String,
     dseUsed :: DseTool,
     maybeCud :: Maybe String
   }
@@ -276,23 +279,40 @@ makeCCallBlockItem funcName =
   CBlockStmt (CExpr (Just (CCall (makeVar funcName) [] undefNode)) undefNode)
 
 transformFDef :: CFunDef -> Transformer CFunDef
-transformFDef (CFunDef p1 declr p3 b p5) = do
-  body' <- transformStat b
+transformFDef (CFunDef p1 declr decl b p5) = do
   st <- get
+  let uFunc = uninterpFunction st
+  let b' = uninterpTransform uFunc b p1 declr
+  body' <- transformStat b'
   let body'' = transformFunBodies (stage st) (maybeCud st) declr body' (transCsc st) (transPartition st) (targetFunction st)
-  return $ CFunDef p1 declr p3 body'' p5
+  return $ CFunDef p1 declr decl body'' p5
 
 prependAssertion :: CStat -> CStat
 prependAssertion s = CCompound [] [CBlockStmt trueWrappedError, CBlockStmt s] undefNode
+
+uninterpTransform :: String -> CStat -> [CDeclSpec] -> CDeclr -> CStat
+uninterpTransform uFunc origBody declSpec declr =
+  if (functionNameIs uFunc declr)
+     then makeUninterpreted declSpec
+     else origBody
+
+makeUninterpreted :: [CDeclSpec] -> CStat
+makeUninterpreted declSpec =
+  let tStr = inferTypeStr (head declSpec)
+      lhs = tStr++" x"
+      newAssign = assignExpr lhs ("__VERIFIER_nondet_"++tStr++"()")
+      stmt = (CExpr (Just newAssign)) undefNode
+      retStmt = CReturn (Just (makeVar "x")) undefNode
+  in CCompound [] [CBlockStmt stmt, CBlockStmt retStmt] undefNode
 
 transformFunBodies :: Stage -> Maybe String -> CDeclr -> CStat -> Maybe Csc -> Maybe CscPartition -> String -> CStat
 transformFunBodies theStage mCud declr origBody csc p targetFunc
   | theStage == FirstPass =
       if (targetFunc == "__VERIFIER_error")
-         then origBody
-         else if (functionNameIs targetFunc declr)
-                 then prependAssertion origBody
-                 else origBody
+        then origBody
+        else if (functionNameIs targetFunc declr)
+                then prependAssertion origBody
+                else origBody
   | theStage == SecondPass =
       if (functionNameIs "main" declr)
         then
@@ -560,11 +580,11 @@ transformExpr e = do
 transformAsm :: CStrLit -> Transformer CStrLit
 transformAsm d = return d
 
-firstPassTransform :: CTranslUnit -> String -> CTranslUnit
-firstPassTransform ast targetFunc = evalState (transformAst ast) (TransState 0 0 FirstPass [] Nothing Nothing targetFunc CivlSymExec Nothing)
+firstPassTransform :: CTranslUnit -> String -> String -> CTranslUnit
+firstPassTransform ast targetFunc uninterpFunc = evalState (transformAst ast) (TransState 0 0 FirstPass [] Nothing Nothing targetFunc uninterpFunc CivlSymExec Nothing)
 
 countAfterFirstPass :: CTranslUnit -> Int
-countAfterFirstPass ast = count $ execState (transformAst ast) (TransState 0 0 FirstPass [] Nothing Nothing "" CivlSymExec Nothing)
+countAfterFirstPass ast = count $ execState (transformAst ast) (TransState 0 0 FirstPass [] Nothing Nothing "" "" CivlSymExec Nothing)
 
 initialTransform :: CTranslUnit -> String -> IO CTranslUnit
 initialTransform ast funcName = wrapMainAroundFunc ast funcName
@@ -572,21 +592,21 @@ initialTransform ast funcName = wrapMainAroundFunc ast funcName
 wrapMainAroundFunc :: CTranslUnit -> String -> IO CTranslUnit
 wrapMainAroundFunc ast funcName = makeModularAst ast funcName
 
-twoPassTransform :: CTranslUnit -> String -> DseTool -> Maybe String -> CTranslUnit
-twoPassTransform ast targetFunc dTool mCud =
-  let ast'    = firstPassTransform ast targetFunc
-      fpState = execState (transformAst ast) (TransState 0 0 FirstPass [] Nothing Nothing targetFunc dTool Nothing)
+twoPassTransform :: CTranslUnit -> String -> String -> DseTool -> Maybe String -> CTranslUnit
+twoPassTransform ast targetFunc uninterpFunc dTool mCud =
+  let ast'    = firstPassTransform ast targetFunc uninterpFunc
+      fpState = execState (transformAst ast) (TransState 0 0 FirstPass [] Nothing Nothing targetFunc uninterpFunc dTool Nothing)
       c       = count fpState
       hc      = hoistedVarCount fpState
       rTypes  = inputReads fpState
   in
-    evalState (transformAst ast') (TransState c hc SecondPass rTypes Nothing Nothing "" dTool mCud)
+    evalState (transformAst ast') (TransState c hc SecondPass rTypes Nothing Nothing "" "" dTool mCud)
 
 updateTransform :: CTranslUnit -> Csc -> CTranslUnit
-updateTransform ast csc = evalState (transformAst ast) (TransState 0 0 Update [] (Just csc) Nothing "" CivlSymExec Nothing)
+updateTransform ast csc = evalState (transformAst ast) (TransState 0 0 Update [] (Just csc) Nothing "" "" CivlSymExec Nothing)
 
 restrictToGapTransform :: CTranslUnit -> Csc -> CscPartition -> CTranslUnit
-restrictToGapTransform ast csc p = evalState (transformAst ast) (TransState 0 0 RestrictToGap [] (Just csc) (Just p) "" CivlSymExec Nothing)
+restrictToGapTransform ast csc p = evalState (transformAst ast) (TransState 0 0 RestrictToGap [] (Just csc) (Just p) "" "" CivlSymExec Nothing)
 
 parseMyFile :: FilePath -> IO CTranslUnit
 parseMyFile input_file =

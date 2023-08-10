@@ -150,4 +150,9 @@ configuration = Configuration
   <*> switch
       (  long "baseline"
       <> help "Exit after single iteration." )
+  <*> strOption
+      (  long "uninterpreted"
+      <> metavar "F"
+      <> value ""
+      <> help "function name to make uninterpreted" )
 \end{code}

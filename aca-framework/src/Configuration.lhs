@@ -25,6 +25,7 @@ data Configuration = Configuration
   , propertyParam :: String
   , knownReachParam :: Bool
   , baselineParam :: Bool
+  , uninterpretedParam :: String
   } deriving (Show)
 
 data CountConfiguration = CountConfiguration { cscFileToCount :: String }

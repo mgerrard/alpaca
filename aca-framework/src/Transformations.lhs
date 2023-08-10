@@ -155,7 +155,7 @@ makeInstrIfElseExpr count varName tyInfix typeStr =
 
 -- given a function id as "__VERIFIER_nondet_int"
 grabTypeStr :: String -> String
-grabTypeStr funCall = last $ splitOn "_" funCall
+grabTypeStr funCall = takeWhile (/= '(') $ last $ splitOn "_" funCall
 
 makeTypeSpec :: String -> CDeclSpec
 makeTypeSpec ty

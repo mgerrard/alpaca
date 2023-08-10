@@ -308,12 +308,12 @@ deriveProperty "overflow" = OverflowSafety
 deriveProperty p = error $ "sorry, I don't know the property: "++(show p)
 
 runAca :: Configuration -> IO Csc
-runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPre targetFunc partBound merLen genStrat cppFlags iTimeout exclusion dseT mkCud chCud minusAcaFlag prp knownR baselineFlag) = do
+runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPre targetFunc partBound merLen genStrat cppFlags iTimeout exclusion dseT mkCud chCud minusAcaFlag prp knownR baselineFlag uninterpFunc) = do
   checkFileExists program
   let prop = deriveProperty prp
   setLibraryEnvironmentVariable
   now <- getCurrentTime
-  initProgram <- initialProgram program "" "main" logPre targetFunc cppFlags (dseChoice dseT) chCud minusAcaFlag
+  initProgram <- initialProgram program "" "main" logPre targetFunc cppFlags (dseChoice dseT) chCud minusAcaFlag uninterpFunc
   end1 <- getCurrentTime
 
   let astReadTime = formatFloatN ((realToFrac $ diffUTCTime end1 now)::Float) 4
@@ -454,8 +454,8 @@ wrapCudInMaybe cudFile = do
       assump = cudLines !! 0
   return $ Just assump
 
-initialProgram :: FilePath -> FilePath -> String -> FilePath -> String -> String -> DseTool -> String -> Bool -> IO Program
-initialProgram p initCsc "main" logPre targetFunc cppFlags dTool cud minAca = do
+initialProgram :: FilePath -> FilePath -> String -> FilePath -> String -> String -> DseTool -> String -> Bool -> String -> IO Program
+initialProgram p initCsc "main" logPre targetFunc cppFlags dTool cud minAca "" = do
   let iter = 1
   let n = bareProgramName p targetFunc
   let iterTag = "iter.1"
@@ -466,7 +466,7 @@ initialProgram p initCsc "main" logPre targetFunc cppFlags dTool cud minAca = do
   pAst <- getAst p'
   removeFile p'
   mCud <- wrapCudInMaybe cud
-  let pAst' = twoPassTransform pAst targetFunc dTool mCud
+  let pAst' = twoPassTransform pAst targetFunc "" dTool mCud
   let prog = Program {
         sourcePath=filePath
       , ast=(if minAca then pAst else pAst')
@@ -475,8 +475,29 @@ initialProgram p initCsc "main" logPre targetFunc cppFlags dTool cud minAca = do
       , iterLogPath=logPath -- set during call to instrument
       }
   return prog
-{- Construct modular ACA program -}
-initialProgram p initCsc funcName logPre targetFunc cppFlags dTool cud minAca = do
+{- replace given function with uninterpreted version -}
+initialProgram p initCsc "main" logPre targetFunc cppFlags dTool cud minAca uninterpF = do
+  let iter = 1
+  let n = bareProgramName p targetFunc
+  let iterTag = "iter.1"
+  let logPath = logPre ++ "/logs_alpaca/" ++ n ++ "/" ++ iterTag ++ "/"
+  let filePath = logPath ++ n ++ "." ++ iterTag ++ ".c"
+  clearExistingLogs n initCsc logPre
+  p' <- runPreprocessor p cppFlags
+  pAst <- getAst p'
+  removeFile p'
+  mCud <- wrapCudInMaybe cud
+  let pAst' = twoPassTransform pAst targetFunc uninterpF dTool mCud
+  let prog = Program {
+        sourcePath=filePath
+      , ast=(if minAca then pAst else pAst')
+      , pName=n
+      , iteration=iter
+      , iterLogPath=logPath -- set during call to instrument
+      }
+  return prog
+{- Construct modular ACA program, no uninterpreted functions -}
+initialProgram p initCsc funcName logPre targetFunc cppFlags dTool cud minAca _ = do
   let iter = 1
   let n = last $ splitOn "/" $ dropExtension p
   let name' = funcName ++ "_aca_" ++ n;
@@ -491,7 +512,7 @@ initialProgram p initCsc funcName logPre targetFunc cppFlags dTool cud minAca = 
   writeFile newHandle (show $ pretty pAst')
   pAst'' <- getAst newHandle
   mCud <- wrapCudInMaybe cud
-  let pAst''' = twoPassTransform pAst'' targetFunc dTool mCud
+  let pAst''' = twoPassTransform pAst'' targetFunc "" dTool mCud
   let prog = Program {
         sourcePath=filePath
       , ast=pAst'''
