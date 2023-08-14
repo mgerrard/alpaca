@@ -88,12 +88,64 @@ pollLoop runningThreads finished dTool exitStrat csc debug bValid ef = do
         threadDelay 100000 -- poll every 0.1 seconds
         pollLoop runningThreads finished dTool exitStrat csc debug bValid ef
 
+type UThread = Async (Maybe SymExecResult)
+
+runUnderPortfolio :: AnalysisWitness -> UnderPortfolio -> DebugMode -> Bool -> IO UnderCollection
+runUnderPortfolio w p d v = do
+  threads <- mapM (async . (guidedSymExec w d v)) p
+  results <- pollUnderUntilDone threads
+  mapM_ uninterruptibleCancel threads
+  return results
+
+pollUnderUntilDone :: [UThread] -> IO UnderCollection
+pollUnderUntilDone threads = do
+  let finished = []
+  evidence <- pollUnderLoop threads finished
+  return evidence
+
+pollUnderLoop :: [UThread] -> UnderCollection -> IO UnderCollection
+pollUnderLoop [] finished = return finished
+pollUnderLoop runningThreads finished = do
+  maybeResults <- mapM poll runningThreads
+  if any isJust maybeResults
+    then do
+      let results = map extractUnderResult maybeResults
+          results' = catMaybes results
+      if not $ null results'
+        then do return results'
+        else do
+          let (running', stopped) = partitionURunningAndFinished runningThreads maybeResults
+	      finished' = finished ++ stopped
+          threadDelay 100000 -- poll every 0.1 seconds
+          pollUnderLoop running' finished'
+    else do
+      threadDelay 100000 -- poll every 0.1 seconds
+      pollUnderLoop runningThreads finished
+
+type UnderCollection = [SymExecResult]
+type UnderPortfolio = [DseTool]
+type UThreadResult = Maybe (Either SomeException (Maybe SymExecResult))
+
+extractUnderResult :: UThreadResult -> Maybe SymExecResult
+extractUnderResult (Just (Right result)) = result
+extractUnderResult (Just (Left e)) = throw e
+extractUnderResult _ = Nothing
+
 partitionRunningAndFinished :: [Thread] -> [ThreadResult] -> ([Thread], [AnalysisWitness])
 partitionRunningAndFinished ts rs = 
   let tuples = zip rs ts
       (running, stopped) = partition (\y -> isNothing (fst y)) tuples
       running' = map snd running
       stopped' = map (extractAnalysisResult . fst) stopped
+      stopped'' = catMaybes stopped'
+  in (running', stopped'')
+
+partitionURunningAndFinished :: [UThread] -> [UThreadResult] -> ([UThread], [SymExecResult])
+partitionURunningAndFinished ts rs = 
+  let tuples = zip rs ts
+      (running, stopped) = partition (\y -> isNothing (fst y)) tuples
+      running' = map snd running
+      stopped' = map (extractUnderResult . fst) stopped
       stopped'' = catMaybes stopped'
   in (running', stopped'')
 
@@ -596,8 +648,8 @@ cpaSymExecSetup w = do
   let args = ["-witnessValidation","-setprop",valConfig,"-witness",(witnessPath w),"-spec",specFile,"-outputpath",outputDir,(programPath w)]
   return (cpaScript, args, outputDir)
 
-guidedSymExec :: AnalysisWitness -> DseTool -> DebugMode -> Bool -> IO (Maybe SymExecResult)
-guidedSymExec w CpaSymExec d _ = do
+guidedSymExec :: AnalysisWitness -> DebugMode -> Bool -> DseTool-> IO (Maybe SymExecResult)
+guidedSymExec w d _ CpaSymExec = do
   (cpaScript, args, outDir) <- cpaSymExecSetup w
   (_,stdout,stderr) <- readProcessWithExitCode cpaScript args ""
   
@@ -616,7 +668,7 @@ guidedSymExec w CpaSymExec d _ = do
     else do
       let pcFile = head pc
       return $ Just $ CpaResult pcFile
-guidedSymExec w CivlSymExec d valid = do
+guidedSymExec w d valid CivlSymExec = do
   let progPath = programPath w
   directPath <- makeDirectiveFile w
   r <- runDirectedCivl (progPath, directPath) d valid
@@ -850,15 +902,16 @@ uniqueParent p a =
 
 checkAnalysisWitness :: DseTool -> DebugMode -> Bool -> FilePath -> AnalysisWitness -> IO PieceOfEvidence
 checkAnalysisWitness _ _ _ _ w@(AnalysisWitness _ _ _ True _ _ _) = return (LegitimateEvidence w emptySubspace 0)
-checkAnalysisWitness CpaSymExec d _ _ witness@(AnalysisWitness _ _ wPath _ _ _ _) = do
+checkAnalysisWitness _ d _ _ witness@(AnalysisWitness _ _ wPath _ _ _ _) = do
   let witness' = witness
   -- the following hack is to remove docker absolute paths written by Ultimate* tools
   -- that cause CPA-SymExec to fail when replaying their witness
   callCommand $ "sed -i '/<data key=\"originfile\">/d' "++wPath
-  result <- (guidedSymExec witness' CpaSymExec d False)
-  if isJust result
+  results <- (runUnderPortfolio witness' [CpaSymExec,CivlSymExec] d False)
+  -- note: will only extract one result
+  if not $ null results
     then do
-      let Just symExecResult = result
+      let symExecResult = head results
       start <- getCurrentTime        
       mFailSpace <- failureSubspace symExecResult d
       end <- getCurrentTime
@@ -869,49 +922,6 @@ checkAnalysisWitness CpaSymExec d _ _ witness@(AnalysisWitness _ _ wPath _ _ _ _
           let (Just failSpace) = mFailSpace
           return $ (LegitimateEvidence witness failSpace elapsedTime)
         else return (EmptyEvidence witness')
-    else return (EmptyEvidence witness')
-checkAnalysisWitness CivlSymExec d blockV _ witness@(AnalysisWitness tool progPath _ _ _ _ _) = do
-  -- a result contains:
-  --  a file handle (passed by the witness) and
-  --  the output from CIVL's run
-  let uniquePath = programWithinToolDir progPath tool
-  let witness' = witness { programPath = uniquePath }
-  result <- (guidedSymExec witness' CivlSymExec d False)
-  if isJust result
-    then let Just symExecResult = result
-    in
-      if confirmedFailure symExecResult
-        then do
-          start <- getCurrentTime        
-          mFailSpace <- failureSubspace symExecResult d
-          end <- getCurrentTime
-          let elapsedTime = (realToFrac :: (Real a) => a -> Float) $ diffUTCTime end start
-          
-          if (isJust mFailSpace)
-            then do
-              let (Just failSpace) = mFailSpace
-              return $ (LegitimateEvidence witness failSpace elapsedTime)
-            else return (EmptyEvidence witness')
-        else do
-          if blockV
-            then do
-              start <- getCurrentTime                    
-              maybeValidSpace <- (guidedSymExec witness' CivlSymExec d True)
-              end <- getCurrentTime
-              let elapsedTime = (realToFrac :: (Real a) => a -> Float) $ diffUTCTime end start
-              
-              if isJust maybeValidSpace
-                then do
-                  let Just validResult = maybeValidSpace
-                  mValidSpace <- validSubspace validResult d
-                  if (isJust mValidSpace)
-                    then do
-                      let (Just validSpace) = mValidSpace
-                      return (SpuriousEvidence witness validSpace elapsedTime)
-                    else return (EmptyEvidence witness')
-                else do
-                  return (SpuriousEvidence emptyWitness emptySubspace elapsedTime)
-            else return (SpuriousEvidence emptyWitness emptySubspace (-1))
     else return (EmptyEvidence witness')
 
 mergeEvidence :: EvidenceCollection -> EvidenceCollection
