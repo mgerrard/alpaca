@@ -585,6 +585,7 @@ parseWitness a p time mTag debug logPre CpaSymExec prp = do
                  )
     else return Nothing
 parseWitness a p time mTag debug logPre dTool prp = do
+  putStrLn "trying to parse WITNESS"
   let pathPrefix = deriveOutputDir p a mTag
   start <- getCurrentTime
   w <- tryToGatherWitness pathPrefix

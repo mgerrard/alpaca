@@ -308,7 +308,7 @@ deriveProperty "overflow" = OverflowSafety
 deriveProperty p = error $ "sorry, I don't know the property: "++(show p)
 
 runAca :: Configuration -> IO Csc
-runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPre targetFunc partBound merLen genStrat cppFlags iTimeout exclusion dseT mkCud chCud minusAcaFlag prp knownR baselineFlag uninterpFunc) = do
+runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPre targetFunc partBound octFlag merLen genStrat cppFlags iTimeout exclusion dseT mkCud chCud minusAcaFlag prp knownR baselineFlag uninterpFunc) = do
   checkFileExists program
   let prop = deriveProperty prp
   setLibraryEnvironmentVariable
@@ -355,8 +355,8 @@ runAca c@(Configuration program d timeout selection gTimeout bValid ex gex logPr
     , runningLog     = logHandle
     , logPrefix      = logPre
     , exitSummary    = exitFile
-    , octagon        = False
     , partitionBound = partBound
+    , octagon        = octFlag
     , mergeLength    = merLen
     , genStrategy    = genMode genStrat
     , dseTool        = dseChoice dseT

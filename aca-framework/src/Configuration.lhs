@@ -13,6 +13,7 @@ data Configuration = Configuration
   , prefixParam :: String
   , targetFunctionParam :: String
   , partitionBoundParam :: Int
+  , octagonalizeParam :: Bool
   , mergeLengthParam :: Int
   , genStratParam :: String
   , cppParam :: String
