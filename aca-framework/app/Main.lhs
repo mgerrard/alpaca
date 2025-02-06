@@ -91,6 +91,10 @@ configuration = Configuration
       <> showDefault
       <> value 4
       <> metavar "INT" )
+  <*> switch
+      (  long "octagonalize"
+      <> short 'o'
+      <> help "Octagonalize constraints containing one or two variables." )      
   <*> option auto
       (  long "merge-length"
       <> help "number of partitions to merge when widening"
