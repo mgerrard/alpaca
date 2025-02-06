@@ -69,10 +69,10 @@ java -jar $CIVL_JAR config
 cd $ROOT
 echo
 echo "Set up CPA's Docker image by moving to ./aca-framework/app/docker_tools/cpa and running:"
-echo "  sudo docker build cpa ."
+echo "  sudo docker build -t cpa ."
 echo
 echo "Set up ESBMC's Docker image by moving to ./aca-framework/app/docker_tools/esbmc and running:"
-echo "  sudo docker build esbmc ."
+echo "  sudo docker build -t esbmc ."
 echo
 echo "Now try running `alpaca -p cpaSeq,esbmc ./examples/demo.c`"
 echo
