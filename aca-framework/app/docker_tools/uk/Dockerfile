@@ -1,7 +1,7 @@
 FROM ubuntu:22.04
 
 RUN apt update && apt install -y wget
-RUN wget https://gitlab.com/sosy-lab/sv-comp/archives-2022/raw/svcomp22/2022/ukojak.zip
+RUN wget https://zenodo.org/records/10203546/files/ukojak.zip
 RUN apt update && apt install -y zip
 RUN unzip ukojak.zip
 
